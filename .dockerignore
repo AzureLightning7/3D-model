@@ -1,0 +1,23 @@
+# Used by the web image (build context = repo root).
+**/node_modules
+**/.venv
+**/dist
+**/build
+**/.vite
+**/.turbo
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/__pycache__
+**/*.pyc
+**/.env
+**/.env.*
+apps/api/dormvibe.db
+apps/api/dormvibe.db-*
+apps/api/storage/
+.git
+.github
+_Context
+docs
+*.md
+!README.md

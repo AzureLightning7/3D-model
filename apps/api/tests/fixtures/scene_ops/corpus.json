@@ -1,0 +1,128 @@
+{
+  "fixtures": [
+    {
+      "name": "add-then-move",
+      "initial": {
+        "schemaVersion": 1,
+        "room": { "widthM": 4, "depthM": 4, "heightM": 2.5 },
+        "items": [],
+        "version": 1
+      },
+      "ops": [
+        {
+          "op": "ADD_ITEM",
+          "item": {
+            "id": "a",
+            "catalogId": "sofa-mauve",
+            "name": "Sofa",
+            "position": { "x": 0, "y": 0, "z": 0 },
+            "rotationYRad": 0,
+            "scale": 1,
+            "locked": false
+          }
+        },
+        { "op": "MOVE_ITEM", "itemId": "a", "to": { "x": 1, "y": 0, "z": 1 } }
+      ],
+      "expected": {
+        "schemaVersion": 1,
+        "room": { "widthM": 4, "depthM": 4, "heightM": 2.5 },
+        "items": [
+          {
+            "id": "a",
+            "catalogId": "sofa-mauve",
+            "name": "Sofa",
+            "position": { "x": 1, "y": 0, "z": 1 },
+            "rotationYRad": 0,
+            "scale": 1,
+            "locked": false
+          }
+        ],
+        "version": 3
+      }
+    },
+    {
+      "name": "swap-preserves-transform",
+      "initial": {
+        "schemaVersion": 1,
+        "room": { "widthM": 4, "depthM": 4, "heightM": 2.5 },
+        "items": [
+          {
+            "id": "b",
+            "catalogId": "sofa-mauve",
+            "name": "Sofa",
+            "position": { "x": 0.5, "y": 0, "z": -0.5 },
+            "rotationYRad": 1.5708,
+            "scale": 1,
+            "locked": false
+          }
+        ],
+        "version": 1
+      },
+      "ops": [{ "op": "SWAP_ITEM", "itemId": "b", "newCatalogId": "sofa-teal" }],
+      "expected": {
+        "schemaVersion": 1,
+        "room": { "widthM": 4, "depthM": 4, "heightM": 2.5 },
+        "items": [
+          {
+            "id": "b",
+            "catalogId": "sofa-teal",
+            "name": "Sofa",
+            "position": { "x": 0.5, "y": 0, "z": -0.5 },
+            "rotationYRad": 1.5708,
+            "scale": 1,
+            "locked": false
+          }
+        ],
+        "version": 2
+      }
+    },
+    {
+      "name": "lock-then-delete-other",
+      "initial": {
+        "schemaVersion": 1,
+        "room": { "widthM": 4, "depthM": 4, "heightM": 2.5 },
+        "items": [
+          {
+            "id": "x",
+            "catalogId": "sofa-mauve",
+            "name": "Sofa",
+            "position": { "x": 0, "y": 0, "z": 0 },
+            "rotationYRad": 0,
+            "scale": 1,
+            "locked": false
+          },
+          {
+            "id": "y",
+            "catalogId": "rug-round",
+            "name": "Rug",
+            "position": { "x": 1, "y": 0, "z": 1 },
+            "rotationYRad": 0,
+            "scale": 1,
+            "locked": false
+          }
+        ],
+        "version": 5
+      },
+      "ops": [
+        { "op": "LOCK_ITEM", "itemId": "x", "locked": true },
+        { "op": "DELETE_ITEM", "itemId": "y" }
+      ],
+      "expected": {
+        "schemaVersion": 1,
+        "room": { "widthM": 4, "depthM": 4, "heightM": 2.5 },
+        "items": [
+          {
+            "id": "x",
+            "catalogId": "sofa-mauve",
+            "name": "Sofa",
+            "position": { "x": 0, "y": 0, "z": 0 },
+            "rotationYRad": 0,
+            "scale": 1,
+            "locked": true
+          }
+        ],
+        "version": 7
+      }
+    }
+  ]
+}

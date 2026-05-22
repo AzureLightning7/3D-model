@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnp.*
+jspm_packages/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Caches
+.turbo/
+.vite/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Test / coverage
+coverage/
+*.lcov
+.nyc_output/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+
+# App data / databases
+apps/api/storage/
+apps/api/dormvibe.db
+apps/api/dormvibe.db-*
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Environment
+.env
+.env.*
+!.env.example
+*.local
+
+# Editors / IDEs
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Temp
+tmp/
+temp/
+*.tmp
+*.pid
+*.seed

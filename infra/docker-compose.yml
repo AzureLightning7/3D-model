@@ -1,0 +1,92 @@
+# DormVibe dev stack.
+#
+# Today: just web + api (SQLite + local files in a named volume).
+# Phase 3 will add postgres (pgvector), redis, minio under the same compose.
+#
+# Run from repo root:
+#   docker compose -f infra/docker-compose.yml up --build
+#
+# The browser still talks to http://localhost:5173 and http://localhost:8000;
+# the containers are only an alternative to `pnpm dev:*`.
+
+name: dormvibe
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: dormvibe
+      POSTGRES_PASSWORD: dormvibe
+      POSTGRES_DB: dormvibe
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dormvibe -d dormvibe"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    image: dormvibe/api:dev
+    environment:
+      APP_ENV: local
+      APP_LOG_LEVEL: info
+      APP_BASE_URL: http://localhost:8000
+      DATABASE_URL: postgresql+psycopg://dormvibe:dormvibe@postgres:5432/dormvibe
+      STORAGE_DIR: /data/storage
+      STORAGE_PUBLIC_BASE_URL: http://localhost:8000/storage
+      JWT_SECRET: dev-insecure-change-me
+      JWT_ACCESS_TTL_SECONDS: 900
+      JWT_REFRESH_TTL_SECONDS: 2592000
+      AI_DEFAULT_LLM_PROVIDER: qwen
+      AI_DEFAULT_IMAGE_PROVIDER: replicate
+      AI_DEFAULT_3D_PROVIDER: replicate
+      AI_DEFAULT_REGION: cn
+    ports:
+      - "8000:8000"
+    volumes:
+      # Hot-reload: bind-mount the app source so edits trigger uvicorn reload.
+      - ../apps/api/app:/app/app:ro
+      # Persist uploaded files across container restarts.
+      - api_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # --reload watches /app/app; without it the container would need a rebuild
+    # for every code change.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile.dev
+    image: dormvibe/web:dev
+    environment:
+      # The browser runs on the host, so it hits the host-mapped port, not the
+      # docker-internal service name.
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      VITE_DEFAULT_LOCALE: zh-CN
+      VITE_DEFAULT_THEME: dormvibe-default
+    ports:
+      - "5173:5173"
+    volumes:
+      # Bind-mount source for hot-reload.
+      - ../apps/web/src:/repo/apps/web/src
+      - ../apps/web/public:/repo/apps/web/public
+      - ../apps/web/index.html:/repo/apps/web/index.html
+      - ../apps/web/vite.config.ts:/repo/apps/web/vite.config.ts
+      - ../apps/web/tsconfig.json:/repo/apps/web/tsconfig.json
+      # Anonymous volume shadows the host's (possibly missing/empty) node_modules.
+      - /repo/apps/web/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  api_data:
+  pg_data:
