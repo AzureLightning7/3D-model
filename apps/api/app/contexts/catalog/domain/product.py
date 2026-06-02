@@ -41,6 +41,22 @@ CATALOG: Final[tuple[Product, ...]] = (
     Product("rug-round", "Round Rug", "rug", "#f9a8d4", 1.5, 1.5, 0.02, 259.0, _retailer("pink round rug")),
     Product("lamp-floor", "Floor Lamp", "lamp", "#fde68a", 0.3, 0.3, 1.6, 199.0, _retailer("floor lamp warm")),
     Product("shelf-tall", "Tall Shelf", "shelf", "#a78bfa", 0.8, 0.3, 1.8, 459.0, _retailer("tall bookshelf")),
+    Product("sofa-grey", "Grey Sectional", "sofa", "#6B7280", 2.2, 0.9, 0.8, 2499.0, _retailer("grey sectional sofa")),
+    Product("sofa-cream", "Cream Loveseat", "sofa", "#FEF3C7", 1.4, 0.7, 0.75, 1599.0, _retailer("cream loveseat sofa")),
+    Product("bed-double", "Double Bed Frame", "bed", "#D6A76B", 1.4, 2.0, 0.5, 1899.0, _retailer("double bed wooden frame")),
+    Product("bed-platform", "Platform Bed", "bed", "#374151", 1.6, 2.1, 0.35, 2199.0, _retailer("platform bed minimalist")),
+    Product("desk-white", "White Minimalist Desk", "desk", "#F9FAFB", 1.2, 0.55, 0.75, 599.0, _retailer("white minimalist desk")),
+    Product("desk-corner", "Corner Desk", "desk", "#92400E", 1.6, 1.2, 0.75, 899.0, _retailer("corner study desk")),
+    Product("chair-pink", "Pink Accent Chair", "chair", "#FCA5A5", 0.7, 0.65, 0.9, 599.0, _retailer("pink accent armchair")),
+    Product("chair-wood", "Wooden Dining Chair", "chair", "#B45309", 0.45, 0.45, 0.85, 249.0, _retailer("wooden dining chair")),
+    Product("wardrobe-white", "White Wardrobe", "wardrobe", "#F9FAFB", 1.0, 0.55, 2.0, 1299.0, _retailer("white wardrobe closet")),
+    Product("wardrobe-dark", "Dark Wardrobe", "wardrobe", "#1F2937", 1.2, 0.6, 2.1, 1599.0, _retailer("dark wood wardrobe")),
+    Product("chest-drawers", "Chest of Drawers", "storage", "#D6A76B", 0.8, 0.45, 1.1, 699.0, _retailer("chest of drawers bedroom")),
+    Product("bedside-table", "Bedside Table", "storage", "#E5E7EB", 0.45, 0.4, 0.55, 299.0, _retailer("bedside table nightstand")),
+    Product("desk-lamp", "Desk Lamp", "lamp", "#FDE68A", 0.15, 0.3, 0.4, 129.0, _retailer("LED desk lamp study")),
+    Product("pendant-light", "Pendant Light", "lamp", "#FEF3C7", 0.3, 0.3, 0.3, 199.0, _retailer("pendant ceiling light")),
+    Product("plant-large", "Large Indoor Plant", "decor", "#16A34A", 0.4, 0.4, 1.2, 159.0, _retailer("large indoor plant monstera")),
+    Product("mirror-full", "Full-Length Mirror", "decor", "#E5E7EB", 0.6, 0.05, 1.6, 299.0, _retailer("full length standing mirror")),
 )
 
 

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ThemeId = "dormvibe-default" | "light";
+export type ThemeId = "dormvibe-default" | "dormvibe-light";
 
 const DEFAULT_THEME: ThemeId =
   (import.meta.env.VITE_DEFAULT_THEME as ThemeId | undefined) ?? "dormvibe-default";
@@ -18,7 +18,7 @@ export const useThemeStore = create<ThemeState>()(
       theme: DEFAULT_THEME,
       setTheme: (t) => set({ theme: t }),
       toggle: () =>
-        set({ theme: get().theme === "light" ? "dormvibe-default" : "light" }),
+        set({ theme: get().theme === "dormvibe-light" ? "dormvibe-default" : "dormvibe-light" }),
     }),
     { name: "dormvibe.theme" },
   ),
@@ -27,7 +27,9 @@ export const useThemeStore = create<ThemeState>()(
 // Subscribe to theme changes and reflect onto <html data-theme="…">.
 // Runs once at module import.
 if (typeof document !== "undefined") {
-  const apply = (t: ThemeId) => document.documentElement.setAttribute("data-theme", t);
+  const apply = (t: ThemeId) => {
+    document.documentElement.dataset.theme = t;
+  };
   apply(useThemeStore.getState().theme);
   useThemeStore.subscribe((s) => apply(s.theme));
 }

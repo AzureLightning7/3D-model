@@ -102,6 +102,12 @@ SURVEY: Final[list[dict]] = [
                 "weights": _w(cool_color=1.0),
             },
             {
+                "id": "bold",
+                "label": "Bold & mixed",
+                "subtitle": "expressive, maximalist",
+                "weights": _w(decor=0.7, warm_color=0.5, cool_color=0.5, social=0.2),
+            },
+            {
                 "id": "neutral",
                 "label": "Neutral",
                 "subtitle": "black, white, beige",

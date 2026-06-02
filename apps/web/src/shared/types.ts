@@ -14,6 +14,7 @@ export type SceneItem = {
   catalogId: string;
   name: string;
   position: Vec3;
+  yOffset?: number;
   rotationYRad: number;
   scale: number;
   locked: boolean;
@@ -89,6 +90,7 @@ export type Project = {
   id: string;
   ownerId: string;
   name: string;
+  thumbnailUrl?: string | null;
   roomWidthM: number;
   roomDepthM: number;
   roomHeightM: number;

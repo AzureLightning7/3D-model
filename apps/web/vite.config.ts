@@ -5,7 +5,10 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "src") },
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+      "lucide-react": path.resolve(__dirname, "src/vendor/lucide-react"),
+    },
   },
   server: { port: 5173 },
   // @ts-expect-error vitest extends Vite config at runtime
