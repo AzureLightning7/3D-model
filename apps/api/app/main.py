@@ -4,11 +4,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.contexts.catalog.interfaces.router import router as catalog_router
 from app.contexts.identity.interfaces.router import router as auth_router
 from app.contexts.projects.interfaces.router import router as projects_router
 from app.contexts.style_profile.interfaces.router import router as profile_router
+from app.contexts.upload.router import router as upload_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.session import init_db
@@ -23,6 +26,11 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="DormVibe API", version="0.0.0", lifespan=lifespan)
+
+GENERATED_DIR = Path(__file__).parent.parent / "public" / "generated"
+GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+
+app.mount("/generated", StaticFiles(directory=str(GENERATED_DIR)), name="generated")
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,5 +52,6 @@ api.include_router(auth_router)
 api.include_router(projects_router)
 api.include_router(catalog_router)
 api.include_router(profile_router)
+api.include_router(upload_router)
 
 app.include_router(api)
