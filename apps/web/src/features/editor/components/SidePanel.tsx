@@ -194,7 +194,7 @@ export function SidePanel() {
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           {saving && (
-            <div style={{ ...styles.muted, fontSize: 11, fontWeight: 800 }}>
+            <div data-testid="saving-indicator" style={{ ...styles.muted, fontSize: 11, fontWeight: 800 }}>
               {lang === "zh" ? "保存中…" : "Saving…"}
             </div>
           )}
@@ -223,6 +223,7 @@ export function SidePanel() {
             <button
               key={x.id}
               type="button"
+              data-testid={`mode-${x.id}`}
               onClick={() => setMode(x.id)}
               style={{
                 border: "1px solid " + (active ? "rgba(45,212,191,0.35)" : "transparent"),
@@ -248,6 +249,7 @@ export function SidePanel() {
             <div style={{ marginTop: 6, color: "var(--c-muted)", fontSize: 12, lineHeight: 1.6 }}>{t.startDesc}</div>
             <button
               type="button"
+              data-testid="generate-scene"
               style={{
                 ...styles.button,
                 marginTop: 12,
@@ -483,12 +485,12 @@ export function SidePanel() {
               <div style={{ ...styles.card, padding: 14 }}>
                 <div style={{ color: "var(--c-muted)", fontSize: 12, fontWeight: 950, letterSpacing: 1.2 }}>{t.item}</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                  <button style={styles.buttonGhost} onClick={toggleLock}>
+                  <button data-testid="lock-toggle" style={styles.buttonGhost} onClick={toggleLock}>
                     {selected.locked ? `🔓 ${t.unlock}` : `🔒 ${t.lock}`}
                   </button>
                   <div>
                     <label style={styles.label}>{t.replaceWith}</label>
-                    <select style={styles.input} value={selected.catalogId} onChange={(e) => swap(e.target.value)} disabled={selected.locked}>
+                    <select data-testid="swap-select" style={styles.input} value={selected.catalogId} onChange={(e) => swap(e.target.value)} disabled={selected.locked}>
                       {allProducts.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}

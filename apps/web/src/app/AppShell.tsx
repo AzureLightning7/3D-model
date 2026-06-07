@@ -6,6 +6,7 @@ import { useAuthStore } from "@/features/auth/store";
 import { useProfileStore } from "@/features/survey/store";
 import { styles } from "@/shared/ui";
 import { useLangStore } from "@/store/langStore";
+import { ThemeToggle } from "@/themes/ThemeToggle";
 
 export function AppShell() {
   const nav = useNavigate();
@@ -77,7 +78,7 @@ export function AppShell() {
   }
 
   return (
-    <div style={{ ...styles.shell, background: "#0A0A0A" }}>
+    <div style={{ ...styles.shell, background: "var(--c-bg)" }}>
       {!hideNav && !isEditor && (
         <nav
           style={{
@@ -137,6 +138,7 @@ export function AppShell() {
               >
                 {lang === "zh" ? "EN" : "中文"}
               </button>
+              <ThemeToggle />
               <Link
                 to="/login"
                 style={{
@@ -186,6 +188,7 @@ export function AppShell() {
               >
                 {lang === "zh" ? "EN" : "中文"}
               </button>
+              <ThemeToggle />
               <div ref={menuRef} style={{ position: "relative" }}>
                 <button
                   type="button"

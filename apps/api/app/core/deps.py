@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 import jwt
@@ -12,6 +13,8 @@ from app.contexts.identity.infrastructure.repository import UserRepository
 from app.db.session import get_db
 
 DbSession = Annotated[Session, Depends(get_db)]
+
+log = logging.getLogger(__name__)
 
 
 def _unauthorized(detail: str) -> HTTPException:
@@ -30,7 +33,8 @@ def get_current_user(
     except jwt.ExpiredSignatureError:
         raise _unauthorized("Token expired") from None
     except jwt.InvalidTokenError as e:
-        raise _unauthorized(f"Invalid token: {e}") from None
+        log.info("auth.access.invalid_token", extra={"error": str(e)})
+        raise _unauthorized("Invalid token") from None
 
     user_id = payload.get("sub")
     if not isinstance(user_id, str):

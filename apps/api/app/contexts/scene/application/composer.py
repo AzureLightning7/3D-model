@@ -20,7 +20,12 @@ from app.contexts.scene.application.layout_solver import ReservedArea, solve
 from app.contexts.scene.domain.scene_graph import Room, Scene, SceneItem, Vec3
 
 DEFAULT_STYLE = "cozy"
-DEFAULT_TOP_K = 6
+# Top-K must be large enough to include the demo's hero items. For the "cozy"
+# anchor the rug ranks 7th by cosine similarity, so a cap of 6 silently dropped
+# it and broke the headline demo (swap sofa, rug stays put). 8 matches the
+# recommend endpoint default and leaves margin. A category-aware composer that
+# guarantees a rug/decor item is the more robust follow-up (see docs/ERROR_LOG.md).
+DEFAULT_TOP_K = 8
 
 
 def _new_id() -> str:

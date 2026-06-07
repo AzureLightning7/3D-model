@@ -9,19 +9,25 @@
  * This spec covers what only a browser can prove:
  *   - The SidePanel's Generate, Lock/Unlock, and Swap controls are reachable
  *     and visibly toggle their labels.
- *   - A screenshot before/after RECOMPOSE shows the locked-region pixels are
- *     stable (rug doesn't visibly move), modulo a small tolerance.
+ *   - A screenshot before/after RECOMPOSE shows the canvas keeps rendering.
+ *
+ * The SidePanel is a tabbed panel (Start / Add / Edit). "Generate" lives in the
+ * Start tab; "Lock" and "Replace With…" live in the Edit tab. Controls are
+ * targeted by stable `data-testid`s so this spec is language-independent
+ * (the UI ships zh + en copy).
  *
  * Run locally:
  *   1. `pnpm add -D -F web @playwright/test && npx playwright install chromium`
- *   2. `infra/docker-compose up -d`   # postgres + pgvector + minio
+ *   2. `docker compose -f infra/docker-compose.yml up -d`   # postgres + pgvector
  *   3. `pnpm -F api dev`              # API on :8000
- *   4. `pnpm -F web dev`              # web on :5173
+ *   4. `pnpm -F web dev`             # web on :5173
  *   5. `npx playwright test apps/web/e2e/demo-flow.spec.ts`
  *
- * The auth / project creation is driven through the API directly because the
- * web UI for those screens may evolve; the editor UI is the part this test
- * actually cares about.
+ * The web dev server exposes window.__DORMVIBE_TEST_HOOK__ (gated on import.meta
+ * .env.DEV || VITE_E2E) so selection can be driven without clicking inside WebGL.
+ *
+ * Auth / project creation is driven through the API directly because the auth
+ * UI may evolve; the editor UI is the part this test actually cares about.
  */
 
 import { expect, test } from "@playwright/test";
@@ -33,10 +39,11 @@ const PASSWORD = "p4ssw0rd-secret!";
 
 async function apiSignupAndCreateProject(request: import("@playwright/test").APIRequestContext) {
   const reg = await request.post(`${API}/auth/register`, {
-    data: { email: EMAIL, password: PASSWORD, display_name: "Demo" },
+    data: { email: EMAIL, password: PASSWORD, displayName: "Demo" },
   });
   expect(reg.ok()).toBeTruthy();
-  const token = (await reg.json()).tokens.accessToken;
+  const auth = await reg.json();
+  const token = auth.tokens.accessToken;
 
   const proj = await request.post(`${API}/projects`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -44,62 +51,63 @@ async function apiSignupAndCreateProject(request: import("@playwright/test").API
   });
   expect(proj.ok()).toBeTruthy();
   const projectId = (await proj.json()).id;
-  return { token, projectId };
+  return { user: auth.user, tokens: auth.tokens, projectId };
+}
+
+function selectByCatalogPrefix(prefix: string) {
+  return () => {
+    const w = window as unknown as {
+      __DORMVIBE_TEST_HOOK__?: { selectByCatalogPrefix: (p: string) => void };
+    };
+    w.__DORMVIBE_TEST_HOOK__?.selectByCatalogPrefix(prefix);
+  };
 }
 
 test("editor demo flow: generate, lock, swap, regenerate", async ({ page, request, context }) => {
-  const { token, projectId } = await apiSignupAndCreateProject(request);
+  const { user, tokens, projectId } = await apiSignupAndCreateProject(request);
 
-  // Inject the access token so the web app can authenticate without going
-  // through the login UI. Adjust to whatever the app actually reads on boot.
-  await context.addInitScript(([t]) => {
-    window.localStorage.setItem("dormvibe.accessToken", t);
-  }, [token]);
+  // Seed the persisted Zustand auth store so RequireAuth lets us into the editor
+  // without driving the login UI. Shape must match zustand/persist: the store is
+  // named "dormvibe.auth" and serializes as { state, version }.
+  await context.addInitScript((authJson) => {
+    window.localStorage.setItem("dormvibe.auth", authJson as string);
+  }, JSON.stringify({ state: { user, tokens }, version: 0 }));
 
   await page.goto(`${WEB}/projects/${projectId}/editor`);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 10_000 });
 
-  // Step 1: generate an initial scene.
-  await page.getByRole("button", { name: /generate scene/i }).click();
-  await expect(page.locator("text=saving").first()).toBeHidden({ timeout: 15_000 });
+  // Step 1: generate an initial scene (Start tab is the default mode).
+  await page.getByTestId("generate-scene").click();
+  await expect(page.getByTestId("saving-indicator")).toBeHidden({ timeout: 15_000 });
 
-  // Screenshot the pre-recompose canvas state.
   const canvas = page.locator("canvas").first();
   const before = await canvas.screenshot();
 
-  // Step 2: select an item (a sofa) — for this we drive selection via the
-  // store directly from within the page, since clicking inside the WebGL
-  // canvas at the right coords is brittle.
-  await page.evaluate(async () => {
-    const w = window as unknown as {
-      __DORMVIBE_TEST_HOOK__?: { selectByCatalogPrefix: (p: string) => void };
-    };
-    w.__DORMVIBE_TEST_HOOK__?.selectByCatalogPrefix("rug-");
-  });
-  await page.getByRole("button", { name: /lock/i }).click();
-  await expect(page.getByRole("button", { name: /unlock/i })).toBeVisible();
+  // Step 2: select the rug, switch to the Edit tab, and lock it. The lock button
+  // flips its icon from 🔒 to 🔓 (locale-independent) when the item is locked.
+  await page.evaluate(selectByCatalogPrefix("rug-"));
+  await page.getByTestId("mode-edit").click();
+  await page.getByTestId("lock-toggle").click();
+  await expect(page.getByTestId("lock-toggle")).toContainText("🔓");
 
-  await page.evaluate(async () => {
-    const w = window as unknown as {
-      __DORMVIBE_TEST_HOOK__?: { selectByCatalogPrefix: (p: string) => void };
-    };
-    w.__DORMVIBE_TEST_HOOK__?.selectByCatalogPrefix("sofa-");
-  });
-  // Swap sofa color.
-  const swap = page.getByLabel(/swap to/i);
+  // Step 3: select a sofa and swap its product (transform preserved server-side).
+  await page.evaluate(selectByCatalogPrefix("sofa-"));
+  const swap = page.getByTestId("swap-select");
   const current = await swap.inputValue();
   const alt = current === "sofa-mauve" ? "sofa-teal" : "sofa-mauve";
   await swap.selectOption(alt);
 
-  // Step 3: regenerate scene with preserveLocked.
-  await page.getByRole("button", { name: /generate scene/i }).click();
-  await expect(page.locator("text=saving").first()).toBeHidden({ timeout: 15_000 });
+  // Step 4: regenerate with preserveLocked. Generate lives in the Start tab, so
+  // switch back before clicking.
+  await page.getByTestId("mode-start").click();
+  await page.getByTestId("generate-scene").click();
+  await expect(page.getByTestId("saving-indicator")).toBeHidden({ timeout: 15_000 });
   const after = await canvas.screenshot();
 
-  // The locked rug should occupy roughly the same pixels. A naive byte-diff
-  // is too strict (camera lighting, AA), so we rely on the data-layer test
-  // (`test_demo_flow.py`) for *position* correctness and only assert here
-  // that the canvas didn't go blank.
+  // The locked rug should occupy roughly the same pixels. A naive byte-diff is
+  // too strict (camera lighting, AA), so we rely on the data-layer test
+  // (test_demo_flow.py) for *position* correctness and only assert here that the
+  // canvas didn't go blank.
   expect(before.length).toBeGreaterThan(1000);
   expect(after.length).toBeGreaterThan(1000);
 });

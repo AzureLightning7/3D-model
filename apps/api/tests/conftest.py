@@ -7,6 +7,7 @@ don't need a real Postgres+pgvector instance just to exercise endpoint logic.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import tempfile
@@ -72,7 +73,9 @@ def test_app_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
                     width_m=p.width_m,
                     depth_m=p.depth_m,
                     height_m=p.height_m,
-                    embedding=for_product(p.id),
+                    # embedding column is Text; mirror seed.py and store JSON
+                    # (raw list fails on SQLite with "type 'list' is not supported").
+                    embedding=json.dumps(for_product(p.id)),
                 )
             )
         db.commit()

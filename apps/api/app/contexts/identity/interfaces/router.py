@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import jwt
 from fastapi import APIRouter, HTTPException, status
 
@@ -21,6 +23,8 @@ from app.contexts.identity.interfaces.dto import (
 from app.core.deps import CurrentUser, DbSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+log = logging.getLogger(__name__)
 
 
 def _to_auth(user: User, tokens: TokenPair) -> AuthResponse:
@@ -70,9 +74,10 @@ def refresh(body: RefreshRequest, db: DbSession) -> TokenPairOut:
     try:
         payload = decode(body.refresh_token, expected_type="refresh")
     except jwt.InvalidTokenError as e:
+        log.info("auth.refresh.invalid_token", extra={"error": str(e)})
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid refresh token: {e}",
+            detail="Invalid refresh token",
         ) from None
     user_id = payload.get("sub")
     if not isinstance(user_id, str):
