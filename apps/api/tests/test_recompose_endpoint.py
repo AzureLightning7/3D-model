@@ -66,7 +66,7 @@ def test_recompose_preserves_locked_item_position(test_app_client: TestClient) -
         json={"style": "cozy", "preserveLocked": True},
     )
     assert r.status_code == 200, r.text
-    scene = r.json()["scene"]
+    scene = r.json()["project"]["scene"]
 
     rug = next((it for it in scene["items"] if it["id"] == "rug-1"), None)
     assert rug is not None, "locked rug must survive recompose with its original id"
@@ -88,7 +88,7 @@ def test_recompose_can_opt_out_of_preserve(test_app_client: TestClient) -> None:
         json={"style": "cozy", "preserveLocked": False},
     )
     assert r.status_code == 200
-    scene = r.json()["scene"]
+    scene = r.json()["project"]["scene"]
     assert not any(it["id"] == "rug-1" for it in scene["items"]), (
         "with preserveLocked=false the locked item's id should be replaced"
     )
@@ -129,7 +129,7 @@ def test_recompose_new_items_do_not_overlap_locked(test_app_client: TestClient) 
         json={"style": "cozy", "preserveLocked": True},
     )
     assert r.status_code == 200
-    scene = r.json()["scene"]
+    scene = r.json()["project"]["scene"]
 
     # Look up footprints (rug is 1.5x1.5, centered at -0.5,0.5).
     rug_w, rug_d = 1.5, 1.5
@@ -152,3 +152,23 @@ def test_recompose_new_items_do_not_overlap_locked(test_app_client: TestClient) 
         assert not (overlap_x and overlap_z), (
             f"item {it['id']} ({cat}) at ({ix},{iz}) overlaps locked rug"
         )
+
+
+def test_recompose_warns_when_room_too_small(test_app_client: TestClient) -> None:
+    """D7: items the solver can't fit are surfaced as warnings, not dropped silently."""
+    h = auth_headers(test_app_client)
+    r = test_app_client.post(
+        "/api/v1/projects",
+        headers=h,
+        json={"name": "tiny", "roomWidthM": 1.0, "roomDepthM": 1.0, "roomHeightM": 2.4},
+    )
+    assert r.status_code == 201, r.text
+    pid = r.json()["id"]
+
+    r = test_app_client.post(
+        f"/api/v1/projects/{pid}/scene/recompose", headers=h, json={"style": "cozy"}
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert isinstance(body["warnings"], list)
+    assert any("too small" in w for w in body["warnings"]), body["warnings"]

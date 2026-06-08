@@ -4,6 +4,7 @@ import { Fingerprint, LayoutDashboard, LogOut, RefreshCw, Settings } from "lucid
 
 import { useAuthStore } from "@/features/auth/store";
 import { useProfileStore } from "@/features/survey/store";
+import { api } from "@/shared/api";
 import { styles } from "@/shared/ui";
 import { useLangStore } from "@/store/langStore";
 import { ThemeToggle } from "@/themes/ThemeToggle";
@@ -55,6 +56,10 @@ export function AppShell() {
   const avatarLetter = (user?.email?.[0] ?? "U").toUpperCase();
 
   function logout() {
+    // Best-effort server-side revocation of the refresh token, then clear local
+    // state regardless of network outcome so logout always completes.
+    const refreshToken = useAuthStore.getState().tokens?.refreshToken;
+    if (refreshToken) void api.auth.logout(refreshToken).catch(() => {});
     clearAuth();
     clearProfile(null);
     nav("/", { replace: true });

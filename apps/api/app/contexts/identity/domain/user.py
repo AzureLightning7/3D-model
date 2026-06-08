@@ -26,5 +26,13 @@ class InvalidCredentials(IdentityError):
     pass
 
 
+class RefreshTokenReuse(InvalidCredentials):
+    """A refresh token that was already rotated/revoked was presented again.
+
+    Subclasses InvalidCredentials so callers handling auth failure catch it too,
+    while still allowing reuse to be detected and logged distinctly.
+    """
+
+
 class UserNotFound(IdentityError):
     pass

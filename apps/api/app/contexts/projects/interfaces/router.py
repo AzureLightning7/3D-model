@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import TypeAdapter, ValidationError
+from sqlalchemy.orm import Session
 
 from app.contexts.projects.domain.project import Project
 from app.contexts.projects.infrastructure.repository import ProjectRepository
@@ -13,6 +14,7 @@ from app.contexts.projects.interfaces.dto import (
     ProjectList,
     ProjectOut,
     RecomposeRequest,
+    RecomposeResponse,
     SceneUpdate,
 )
 from app.contexts.scene.application.composer import compose
@@ -58,7 +60,7 @@ def create_project(body: ProjectCreate, user: CurrentUser, db: DbSession) -> Pro
     return ProjectOut.model_validate(project, from_attributes=True)
 
 
-def _load_owned(project_id: str, user_id: str, db) -> Project:
+def _load_owned(project_id: str, user_id: str, db: Session) -> Project:
     p = ProjectRepository(db).get(project_id)
     if p is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -122,10 +124,10 @@ def apply_edits(
     return ProjectOut.model_validate(updated, from_attributes=True)
 
 
-@router.post("/{project_id}/scene/recompose", response_model=ProjectOut)
+@router.post("/{project_id}/scene/recompose", response_model=RecomposeResponse)
 def recompose_scene(
     project_id: str, body: RecomposeRequest, user: CurrentUser, db: DbSession
-) -> ProjectOut:
+) -> RecomposeResponse:
     p = _load_owned(project_id, user.id, db)
     current = Scene.model_validate(p.scene)
     room = Room(
@@ -152,12 +154,15 @@ def recompose_scene(
     )
 
     # Preserve version progression — the scene is a *new* layout, not v1.
-    bumped = proposed.model_copy(update={"version": current.version + 1})
+    bumped = proposed.scene.model_copy(update={"version": current.version + 1})
     updated = ProjectRepository(db).update_scene(
         project_id, bumped.model_dump(by_alias=True, mode="json")
     )
     assert updated is not None
-    return ProjectOut.model_validate(updated, from_attributes=True)
+    return RecomposeResponse(
+        project=ProjectOut.model_validate(updated, from_attributes=True),
+        warnings=proposed.warnings,
+    )
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

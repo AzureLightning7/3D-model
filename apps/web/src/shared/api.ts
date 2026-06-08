@@ -5,6 +5,7 @@ import type {
   EditOp,
   Project,
   RankedProduct,
+  RecomposeResponse,
   Scene,
   StyleProfile,
   Survey,
@@ -123,6 +124,12 @@ export const api = {
         { method: "POST", body: JSON.stringify({ refreshToken }) },
         { auth: false },
       ),
+    logout: (refreshToken: string) =>
+      request<void>(
+        "/auth/logout",
+        { method: "POST", body: JSON.stringify({ refreshToken }) },
+        { auth: false },
+      ),
     me: () => request<User>("/auth/me"),
   },
   projects: {
@@ -154,7 +161,7 @@ export const api = {
       id: string,
       args: { style?: string; profileId?: string | null; preserveLocked?: boolean },
     ) =>
-      request<Project>(`/projects/${id}/scene/recompose`, {
+      request<RecomposeResponse>(`/projects/${id}/scene/recompose`, {
         method: "POST",
         body: JSON.stringify({
           style: args.style ?? "cozy",

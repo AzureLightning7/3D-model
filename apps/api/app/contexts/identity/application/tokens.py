@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import jwt
@@ -18,10 +18,11 @@ class TokenPair:
     refresh_token: str
     access_expires_at: datetime
     refresh_expires_at: datetime
+    refresh_jti: str
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _encode(payload: dict[str, Any]) -> str:
@@ -55,6 +56,7 @@ def issue_token_pair(user_id: str) -> TokenPair:
         refresh_token=refresh,
         access_expires_at=access_exp,
         refresh_expires_at=refresh_exp,
+        refresh_jti=jti,
     )
 
 

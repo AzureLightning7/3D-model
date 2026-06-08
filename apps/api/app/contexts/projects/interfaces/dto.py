@@ -51,3 +51,11 @@ class ProjectOut(BaseModel):
 
 class ProjectList(BaseModel):
     items: list[ProjectOut]
+
+
+class RecomposeResponse(BaseModel):
+    """Recompose returns the updated project plus any non-fatal warnings
+    (items skipped because the room is too small, locked items out of bounds)."""
+
+    project: ProjectOut
+    warnings: list[str] = Field(default_factory=list)

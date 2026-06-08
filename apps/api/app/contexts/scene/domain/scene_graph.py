@@ -10,7 +10,7 @@ with a migration for stored scenes.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -103,6 +103,6 @@ class SwapItem(BaseModel):
 
 
 EditOp = Annotated[
-    Union[MoveItem, RotateItem, AddItem, DeleteItem, LockItem, SwapItem],
+    MoveItem | RotateItem | AddItem | DeleteItem | LockItem | SwapItem,
     Field(discriminator="op"),
 ]

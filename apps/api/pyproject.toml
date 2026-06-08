@@ -35,7 +35,21 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N"]
+# Domain exceptions use descriptive names (UserNotFound, ItemLocked, …) rather
+# than an Error suffix — a deliberate, consistent convention across the codebase.
+ignore = ["N818"]
+
+[tool.ruff.lint.per-file-ignores]
+# The catalog is a compact data table; wrapping each row hurts readability.
+"app/contexts/catalog/domain/product.py" = ["E501"]
+# Tests favour long, explicit assertions and PascalCase session factories.
+"tests/**" = ["E501", "N806"]
 
 [tool.mypy]
 strict = true
 python_version = "3.12"
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["pgvector.*"]
+ignore_missing_imports = true

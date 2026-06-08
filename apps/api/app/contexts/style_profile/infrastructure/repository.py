@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -37,7 +39,7 @@ class StyleProfileRepository:
         return _to_domain(m) if m else None
 
     def create(
-        self, *, owner_id: str, embedding: list[float], source_answers: list[dict]
+        self, *, owner_id: str, embedding: list[float], source_answers: list[dict[str, Any]]
     ) -> StyleProfile:
         m = StyleProfileModel(
             owner_id=owner_id, embedding=embedding, source_answers=source_answers

@@ -86,7 +86,7 @@ def test_app_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     from app.contexts.catalog.infrastructure import repository as repo_mod
 
     def _py_cosine(v1: list[float], v2: list[float]) -> float:
-        dot = sum(a * b for a, b in zip(v1, v2))
+        dot = sum(a * b for a, b in zip(v1, v2, strict=False))
         n1 = math.sqrt(sum(a * a for a in v1)) or 1.0
         n2 = math.sqrt(sum(b * b for b in v2)) or 1.0
         return 1.0 - dot / (n1 * n2)

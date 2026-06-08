@@ -21,13 +21,13 @@ export function SidePanel() {
   const selectedId = useSceneStore((s) => s.selectedId);
   const dispatch = useSceneStore((s) => s.dispatch);
   const recompose = useSceneStore((s) => s.recompose);
-  const setItemYOffset = useSceneStore((s) => s.setItemYOffset);
   const undo = useSceneStore((s) => s.undo);
   const redo = useSceneStore((s) => s.redo);
   const past = useSceneStore((s) => s.past.length);
   const future = useSceneStore((s) => s.future.length);
   const saving = useSceneStore((s) => s.saving);
   const err = useSceneStore((s) => s.lastError);
+  const warnings = useSceneStore((s) => s.lastWarnings);
 
   const profileId = useProfileStore((s) => s.profileId);
   const [style, setStyle] = useState<StyleId>("cozy");
@@ -97,6 +97,22 @@ export function SidePanel() {
       op: "ROTATE_ITEM",
       itemId: selected.id,
       rotationYRad: selected.rotationYRad + d,
+    });
+  }
+
+  // Raise/Lower changes the persisted vertical position (item.position.y),
+  // clamped to the room height, so it survives reloads. MOVE_ITEM is validated
+  // against room bounds on both client and server.
+  const RAISE_STEP = 0.3;
+  async function raiseBy(delta: number) {
+    if (!selected || selected.locked) return;
+    const roomH = scene?.room.heightM ?? 6;
+    const y = Math.max(0, Math.min(roomH, selected.position.y + delta));
+    if (Math.abs(y - selected.position.y) < 1e-6) return;
+    await dispatch({
+      op: "MOVE_ITEM",
+      itemId: selected.id,
+      to: { x: selected.position.x, y, z: selected.position.z },
     });
   }
   async function toggleLock() {
@@ -201,6 +217,25 @@ export function SidePanel() {
         </div>
       </div>
       {err && <p style={{ ...styles.err, fontSize: 12 }}>{err}</p>}
+      {warnings.length > 0 && (
+        <div
+          style={{
+            marginBottom: 10,
+            padding: "8px 10px",
+            borderRadius: 10,
+            border: "1px solid rgba(251,191,36,0.35)",
+            background: "rgba(251,191,36,0.08)",
+            color: "#FBBF24",
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: 1.5,
+          }}
+        >
+          {warnings.map((w, i) => (
+            <div key={i}>⚠ {w}</div>
+          ))}
+        </div>
+      )}
 
       <div
         style={{
@@ -443,7 +478,7 @@ export function SidePanel() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setItemYOffset(selected.id, (selected.yOffset ?? 0) + 0.3)}
+                    onClick={() => raiseBy(RAISE_STEP)}
                     title={lang === "zh" ? "上移" : "Raise item"}
                     disabled={selected.locked}
                     style={{
@@ -462,7 +497,7 @@ export function SidePanel() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setItemYOffset(selected.id, Math.max(0, (selected.yOffset ?? 0) - 0.3))}
+                    onClick={() => raiseBy(-RAISE_STEP)}
                     title={lang === "zh" ? "下移" : "Lower item"}
                     disabled={selected.locked}
                     style={{

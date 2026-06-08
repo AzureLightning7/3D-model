@@ -14,8 +14,7 @@ unchanged.
 from __future__ import annotations
 
 import math
-from typing import Final
-
+from typing import Any, Final
 
 # Mirror of catalog.infrastructure.embeddings.AXES — duplicated to avoid an
 # import cycle (style_profile shouldn't depend on catalog internals).
@@ -36,7 +35,7 @@ def _w(**weights: float) -> dict[str, float]:
 # weights derived from the answer's vibe.
 # ---------------------------------------------------------------------------
 
-SURVEY: Final[list[dict]] = [
+SURVEY: Final[list[dict[str, Any]]] = [
     {
         "id": "vibe",
         "title": "What vibe do you want?",
@@ -166,7 +165,7 @@ def _normalize(v: list[float]) -> list[float]:
     return [x / norm for x in v]
 
 
-def derive_embedding(answers: list[dict]) -> list[float]:
+def derive_embedding(answers: list[dict[str, Any]]) -> list[float]:
     """Given `[{questionId, optionId}, ...]`, return a unit-length 16-dim vector.
 
     Unknown question/option ids are skipped silently (the API layer should

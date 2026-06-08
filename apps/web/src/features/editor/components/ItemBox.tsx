@@ -29,6 +29,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
   const raycaster = useRef(new THREE.Raycaster());
   const offset = useRef(new THREE.Vector3());
   const lastPos = useRef<{ x: number; z: number }>({ x: item.position.x, z: item.position.z });
+  const meshRef = useRef<THREE.Mesh>(null);
 
   const w = product?.widthM ?? 1.6;
   const d = product?.depthM ?? 0.8;
@@ -96,8 +97,6 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
     });
   }
 
-  const meshRef = useRef<THREE.Mesh>(null);
-
   useEffect(() => {
     return () => {
       if (controls) controls.enabled = true;
@@ -107,7 +106,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
   return (
     <mesh
       ref={meshRef}
-      position={[item.position.x, item.position.y + (h * item.scale) / 2 + (item.yOffset ?? 0), item.position.z]}
+      position={[item.position.x, item.position.y + (h * item.scale) / 2, item.position.z]}
       rotation={[0, item.rotationYRad, 0]}
       castShadow
       onPointerDown={onPointerDown}

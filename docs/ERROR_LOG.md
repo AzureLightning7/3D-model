@@ -27,40 +27,40 @@ Severity: **Critical** (breaks a real path) · **Security** · **Spec-drift** ·
 | ID | Title | Severity | Status |
 |---|---|---|---|
 | A1 | Compose `api` had no healthcheck for `web`'s `service_healthy` wait | Critical | ✅ Fixed |
-| A2 | `pgvector.Vector` column breaks `create_all` on the default SQLite DB | Critical | ⬜ Open |
+| A2 | `pgvector.Vector` on the default SQLite DB (verified: works) | Critical | ✅ Not a bug |
 | A3 | E2E demo-flow spec used dead localStorage key + stale selectors | Critical | ✅ Fixed¹ |
 | A4 | Theme toggle advertised in README but never rendered | Critical | ✅ Fixed |
 | A5 | `dormvibe-light` theme had no CSS | Critical | 🟡 Partial |
 | B1 | Default JWT secret usable in any environment | Security | ✅ Fixed |
-| B2 | Refresh tokens never rotated / revoked | Security | ⬜ Open |
+| B2 | Refresh tokens never rotated / revoked | Security | ✅ Fixed |
 | B3 | CORS origins hardcoded to localhost | Security | ✅ Fixed |
 | B4 | SQLite DB committed to the repo | Security | ✅ Verified |
 | B5 | Auth API leaked raw JWT decode error text | Security | ✅ Fixed |
 | B6 | Photo upload has no server-side magic-byte/size validation | Security | ⬜ Open |
 | C1 | Scene Graph far smaller than spec §3.2 | Spec-drift | ⬜ Open |
-| C2 | No `/auth/logout` endpoint | Spec-drift | ⬜ Open |
+| C2 | No `/auth/logout` endpoint | Spec-drift | ✅ Fixed |
 | C3 | No room-photo / dimensions / reconstruct endpoints | Spec-drift | ⬜ Open |
 | C4 | No job queue / WebSocket job status | Spec-drift | ⬜ Open |
 | C5 | No `Idempotency-Key` handling | Spec-drift | ⬜ Open |
 | C6 | Errors are not RFC 7807 problem+json | Spec-drift | ⬜ Open |
-| C7 | RECOMPOSE doesn't re-validate carried-forward locked items | Spec-drift | ⬜ Open |
+| C7 | RECOMPOSE doesn't re-validate carried-forward locked items | Spec-drift | ✅ Fixed |
 | C8 | `SWAP_ITEM` has no footprint/collision check | Spec-drift | ⬜ Open |
 | C9 | Frontend MBTI survey answers are lost before reaching the server | Spec-drift | ⬜ Open |
 | C10 | Catalog has 24 products vs spec's 50–100 | Spec-drift | ⬜ Open |
 | C11 | Items render as colored boxes, never GLB models | Spec-drift | ⬜ Open |
 | C12 | `@react-three/rapier` (spec'd) is absent | Spec-drift | ⬜ Open |
-| C13 | `docs/adr/` exists but is empty | Spec-drift | ⬜ Open |
+| C13 | `docs/adr/` exists but is empty | Spec-drift | ✅ Fixed |
 | D1 | Password strength used `> 8` while field accepts `>= 8` | UX | ✅ Fixed |
-| D2 | `setItemYOffset` (Raise/Lower) never persists to server | UX | ⬜ Open |
-| D3 | `ItemBox` reads `meshRef` before declaration (TDZ-style) | UX | ⬜ Open |
+| D2 | `setItemYOffset` (Raise/Lower) never persists to server | UX | ✅ Fixed |
+| D3 | `ItemBox` reads `meshRef` before declaration (TDZ-style) | UX | ✅ Fixed |
 | D4 | Drag mutates mesh outside React; can desync mid-render | UX | ⬜ Open |
 | D5 | Room DNA shared/persisted only after the API round-trip | UX | ⬜ Open |
 | D6 | Stale-session flash of dashboard before 401 bounce | UX | ⬜ Open |
-| D7 | Layout solver silently drops items in cramped rooms | UX | ⬜ Open |
+| D7 | Layout solver silently drops items in cramped rooms | UX | ✅ Fixed |
 | D8 | `langStore` default hardcoded `en`, ignoring `VITE_DEFAULT_LOCALE` | UX | ✅ Fixed |
-| D9 | README "Phase 4 complete" claims partly untrue | UX | 🟡 Partial |
+| D9 | README "Phase 4 complete" claims partly untrue | UX | ✅ Fixed |
 | E1 | Inconsistent localStorage key style (`.` vs `-`) | Hygiene | ⬜ Open |
-| E2 | Lint/type/test not enforced in CI (needs confirmation) | Hygiene | ⬜ Open |
+| E2 | Lint/type/test not enforced in CI (needs confirmation) | Hygiene | ✅ Fixed |
 | E3 | `zod` dependency declared but unused | Hygiene | ⬜ Open |
 | E4 | `_patch_columns()` ALTER-TABLE shim instead of Alembic | Hygiene | ⬜ Open |
 | T1 | Test fixture seeded a `list` into the `Text` embedding column | Critical | ✅ Fixed |
@@ -180,14 +180,16 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
   `VITE_DEFAULT_LOCALE` (`zh*` → `zh`, else `en`), falling back to `en` when
   unset so non-docker dev is unchanged. Persisted user choice still wins.
 
-### D9 — README "Phase 4 complete" accuracy — 🟡 Partial
+### D9 — README "Phase 4 complete" accuracy — ✅ Fixed
 - **Severity:** UX
 - **Where:** `README.md`
-- **Problem:** Claims "theme toggle" and full conversion shipped; theme toggle
-  wasn't rendered (A4) and `/auth/logout` is missing (C2).
-- **Resolution:** The theme-toggle claim is now true (A4 fixed). The logout claim
-  remains inaccurate until C2 ships — keep this entry open until then, then update
-  the README status line.
+- **Problem:** The README's "theme toggle" claim was false (A4 — not rendered),
+  and sign-out had no server-side teardown (C2 — no `/auth/logout`).
+- **Resolution:** Both underlying gaps are now closed: the theme toggle renders
+  (A4) and `/auth/logout` exists and is called on sign-out (C2). Every item in the
+  README status line ("shopping list, image export, theme toggle, share") is now
+  real, so the line is accurate — no README edit needed. (Light-theme coverage is
+  still partial; see A5.)
 
 ### T1 — Test fixture seeded a list into a Text column — ✅ Fixed
 - **Severity:** Critical (test suite red)
@@ -216,30 +218,129 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
 - **Follow-up (⬜):** A category-aware composer that *guarantees* a rug/decor item
   regardless of K would be more robust than relying on the ranking cutoff.
 
+### B2 — Refresh-token rotation, reuse detection & revocation — ✅ Fixed
+- **Severity:** Security
+- **Where:** new `refresh_tokens` table + `RefreshTokenRepository`
+  (`identity/infrastructure/`), `identity/domain/refresh_token.py`, rewired
+  `identity/application/service.py` and `identity/interfaces/router.py`,
+  `identity/application/tokens.py` (now exposes `refresh_jti`).
+- **Problem:** `refresh()` re-issued a pair without invalidating the old token —
+  a captured refresh token stayed usable for its full 30-day life. No jti store,
+  no reuse detection (spec §9.1).
+- **Resolution:** Each issued refresh token's `jti` is persisted as active.
+  `rotate_refresh` revokes the presented jti and issues a new pair; presenting an
+  already-revoked jti is treated as **reuse** and revokes *every* token for that
+  user (forces full re-login). The router still validates JWT signature/expiry/
+  type first. Covered by `tests/test_auth_refresh.py` (rotation, reuse →
+  whole-chain revocation, invalid-token rejection).
+
+### C2 — `/auth/logout` endpoint — ✅ Fixed
+- **Severity:** Spec-drift (security-adjacent)
+- **Where:** `identity/interfaces/router.py`, `apps/web/src/shared/api.ts`,
+  `apps/web/src/app/AppShell.tsx`.
+- **Problem:** No logout route; the frontend "logout" only cleared localStorage,
+  leaving the refresh token valid server-side until expiry.
+- **Resolution:** Added `POST /auth/logout` that revokes the presented refresh
+  token's jti (idempotent — a bad/expired token still returns 204). The shell's
+  `logout()` calls it best-effort before clearing local state. Covered by
+  `tests/test_auth_refresh.py` (logout revokes; idempotent for bad token).
+
+### D3 — `meshRef` used before declaration — ✅ Fixed
+- **Severity:** UX (readability / lint hazard)
+- **Where:** `apps/web/src/features/editor/components/ItemBox.tsx`.
+- **Problem:** `onPointerMove` referenced `meshRef.current` while
+  `const meshRef = useRef…` was declared ~20 lines below the handlers — worked via
+  closure but confusing and a `no-use-before-define` trip hazard.
+- **Resolution:** Moved the `meshRef` declaration up with the other `useRef`s.
+
+### C13 — Seed the ADR directory — ✅ Fixed
+- **Severity:** Spec-drift (spec §16 wants ADRs in `docs/adr/`)
+- **Where:** `docs/adr/`.
+- **Problem:** The directory existed but was empty; decisions were implicit in the
+  code.
+- **Resolution:** Wrote four ADRs capturing decisions already baked in:
+  `0001-scene-graph-minimal`, `0002-background-tasks-not-celery`,
+  `0003-deterministic-fake-ai-provider`, `0004-sqlite-and-postgres-dev`.
+
+### D7 + C7 — Recompose warnings (skipped items & out-of-bounds locks) — ✅ Fixed
+- **Severity:** D7 = UX, C7 = Spec-drift
+- **Where:** `scene/application/composer.py` (new `ComposeResult`),
+  `projects/interfaces/dto.py` (`RecomposeResponse`),
+  `projects/interfaces/router.py`; frontend `shared/types.ts`, `shared/api.ts`,
+  `editor/store/sceneStore.ts`, `editor/components/SidePanel.tsx`.
+- **Problem (D7):** the layout solver skips items it can't fit, so a cramped room
+  came back sparser than requested with no signal. **(C7):** locked items were
+  carried into the recomposed scene with no bounds check — an out-of-range lock
+  would be silently kept.
+- **Resolution:** `compose()` returns `ComposeResult(scene, warnings)`: it diffs
+  requested vs placed products to warn about skips, and flags any locked item that
+  fails an in-room check (still **kept**, never deleted — matching the spec's
+  "flag, not delete"). `POST …/recompose` now returns `{ project, warnings }`; the
+  editor stores `lastWarnings` and renders an amber banner in the SidePanel.
+- **Tests:** `test_recompose_warns_when_room_too_small` (1×1 room → "too small");
+  existing recompose/demo tests updated for the new response shape. 37 API tests
+  pass; web typecheck + 35 vitest pass.
+- **Note:** small API contract change — recompose response went from `Project` to
+  `{ project, warnings }`; only the editor consumes it and was updated.
+
+### D2 — Raise/Lower now persists (via `position.y`) — ✅ Fixed
+- **Severity:** UX
+- **Where:** `editor/store/sceneStore.ts`, `editor/components/SidePanel.tsx`,
+  `editor/components/ItemBox.tsx`, `shared/types.ts`.
+- **Problem:** Raise/Lower wrote to a client-only `yOffsets` map that was never
+  sent to the server and was wiped on reload; a parallel `yOffset` field on
+  `SceneItem` shadowed the real `position.y`.
+- **Resolution:** Removed the entire `yOffsets` overlay. Raise/Lower now dispatch
+  `MOVE_ITEM` changing `item.position.y` (clamped to `[0, roomHeight]`), validated
+  by the reducer and persisted like any other edit. `ItemBox` renders from
+  `position.y`; dropped the `yOffset` field from `SceneItem`. Net ~40 fewer lines
+  in the store. Web typecheck + 35 vitest pass.
+
+### E2 — Lint/type debt cleared + CI gate — ✅ Fixed
+- **Severity:** Hygiene (root cause for bugs like T1/T2 slipping in unnoticed)
+- **Where:** `apps/api/pyproject.toml` (ruff/mypy config), ~12 source/test files,
+  new `.github/workflows/ci.yml`.
+- **Problem:** `ruff` (43 findings) and `mypy --strict` (15) were both red, and
+  nothing ran them on PRs, so lint/type regressions went unnoticed.
+- **Resolution:**
+  - **ruff → green** (`app` + `tests`): auto-fixed import sorting + `UP`
+    modernizations; fixed 3 `zip(strict=…)`; wrapped 2 long lines; encoded the
+    deliberate conventions in config — `ignore = ["N818"]` (descriptive domain
+    exception names) and per-file `E501`/`N806` ignores for the catalog data table
+    and the test suite.
+  - **mypy --strict → green** (68 files): added `dict[str, Any]` type args, the
+    `pydantic.mypy` plugin (which also resolved the `Room(...)` / `SceneItem(...)`
+    alias call-arg errors — construction now consistently uses field names), a
+    `pgvector.*` import override, a `JsonFormatter` `type: ignore`, and the two
+    missing annotations (`_load_owned`, `lifespan`).
+  - **CI:** `.github/workflows/ci.yml` runs on push + PR — web (typecheck · vitest
+    · build) and api (ruff · mypy · pytest).
+- **Verified locally:** ruff clean, mypy clean, 37 API tests, 35 vitest, web build
+  all pass.
+- **Residual:** the web `lint` script is still a stub (no ESLint); adding a JS
+  linter is a separate follow-up (tracked loosely with E3).
+
+---
+
+## Verified — not a bug
+
+### A2 — pgvector `Vector` on SQLite — ✅ Verified, not a bug
+- **Severity:** originally flagged Critical → downgraded after investigation.
+- **Where:** `apps/api/app/contexts/style_profile/infrastructure/models.py:25`.
+- **Original claim:** `pgvector.sqlalchemy.Vector` is Postgres-only and would
+  break `create_all` / inserts on the default SQLite dev DB.
+- **Finding:** False. pgvector's SQLAlchemy type degrades gracefully on SQLite —
+  it stores the vector as a string and reads it back as a numpy array. The full
+  `create_all` → insert → read cycle works, and the array serializes cleanly
+  through Pydantic (`np.float64` subclasses `float`).
+- **Evidence:** Added `apps/api/tests/test_style_profile_endpoint.py` (4 tests:
+  public survey fetch, create+fetch with a unit-length 16-dim embedding, owner
+  scoping → 403, latest → 404). All pass on SQLite. This context was previously
+  untested, so this is also net-new coverage.
+
 ---
 
 ## Open — what should be done
-
-### A2 — pgvector vs SQLite default — ⬜ Open · Critical
-- **Where:** `apps/api/app/contexts/style_profile/infrastructure/models.py:25`,
-  `apps/api/app/core/config.py` (default `sqlite:///./dormvibe.db`).
-- **Problem:** `StyleProfileModel.embedding` uses `pgvector.sqlalchemy.Vector`,
-  which is Postgres-only. `init_db()` runs `create_all` on SQLite too, so the
-  README's native/SQLite path likely errors at startup.
-- **Plan:** Make the embedding column portable — store as JSON `Text` on SQLite
-  (matching `products.embedding`) and `Vector(N)` on Postgres via a helper that
-  branches on the dialect — **or** drop SQLite support and make Postgres the
-  documented default (update README + reset instructions). Verify with a fresh
-  `pnpm dev:api` and no `.env`.
-
-### B2 — Refresh-token rotation & revocation — ⬜ Open · Security
-- **Where:** `apps/api/app/contexts/identity/application/service.py:35`.
-- **Problem:** `refresh()` re-issues a pair without invalidating the old token;
-  no `sessions`/`jti` store; spec §9.1 requires rotation + reuse detection +
-  logout blacklist.
-- **Plan:** Add a `refresh_tokens` table keyed by `jti (user_id, expires_at,
-  revoked_at)`. Insert on issue, validate+revoke-old on refresh (reject reuse →
-  401 + force reauth), delete on logout (depends on C2). Add a replay test.
 
 ### B6 — Server-side upload validation — ⬜ Open · Security
 - **Where:** `apps/web/src/features/upload/UploadRoomPage.tsx:338` (client-only
@@ -259,15 +360,6 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
 - **Plan:** Don't widen for conformance alone. Record the deliberate MVP narrowing
   in an ADR (C13), and add only the field that actually matters now —
   `style_profile_id` on `scenes` to tie a scene to the profile that produced it.
-
-### C2 — `/auth/logout` endpoint — ⬜ Open · Spec-drift
-- **Where:** `apps/api/app/contexts/identity/interfaces/router.py`,
-  `apps/web/src/app/AppShell.tsx:56`.
-- **Problem:** No logout route; frontend logout just clears localStorage, leaving
-  the refresh token valid until expiry.
-- **Plan:** Add `POST /auth/logout` that revokes the refresh `jti` (depends on
-  B2); call it from the frontend `logout()` before clearing local state, tolerant
-  of network failure. Then close D9.
 
 ### C3 — Room photo / dimensions / reconstruct endpoints — ⬜ Open · Spec-drift
 - **Where:** spec §10.2; frontend `UploadRoomPage.tsx:79` uses a fake
@@ -294,12 +386,6 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
 - **Plan:** Add an exception handler translating `HTTPException` → problem+json
   with `type/title/status/detail/instance/code`; update frontend `ApiError`.
   Low priority until there are external consumers.
-
-### C7 — RECOMPOSE doesn't re-validate locked items — ⬜ Open · Spec-drift
-- **Where:** `apps/api/app/contexts/scene/application/composer.py:94`.
-- **Plan:** After composing, run carried-forward items through `_assert_in_room`;
-  flag (don't delete) out-of-bounds items; add a `warnings: []` field to the
-  recompose response.
 
 ### C8 — `SWAP_ITEM` footprint/collision check — ⬜ Open · Spec-drift
 - **Where:** `apps/api/app/contexts/scene/application/edit_reducer.py:113`.
@@ -333,24 +419,6 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
   overlap check on `MOVE_ITEM` end + red highlight to satisfy US-15 without
   physics. Revisit rapier only if real physics is needed.
 
-### C13 — Empty ADR directory — ⬜ Open · Spec-drift
-- **Where:** `docs/adr/` (empty); spec §16.
-- **Plan:** Seed ADRs for decisions already made: `0001-scene-graph-minimal`
-  (C1), `0002-bg-tasks-not-celery` (C4), `0003-fake-ai-provider`,
-  `0004-sqlite-or-postgres-dev` (A2).
-
-### D2 — Raise/Lower never persists — ⬜ Open · UX
-- **Where:** `apps/web/src/features/editor/store/sceneStore.ts:147`.
-- **Problem:** `setItemYOffset` updates only in-memory `yOffsets`; lost on reload.
-- **Plan:** Persist via `MOVE_ITEM` with a new `y` (`_assert_in_room` already
-  allows `0..height`), or remove the buttons + `yOffset` field if not a real
-  feature.
-
-### D3 — `meshRef` used before declaration — ⬜ Open · UX
-- **Where:** `apps/web/src/features/editor/components/ItemBox.tsx:79` vs `:99`.
-- **Plan:** Move the `const meshRef = useRef…` above the handler functions.
-  Readability only; works today via closure.
-
 ### D4 — Drag desync mid-render — ⬜ Open · UX
 - **Where:** `apps/web/src/features/editor/components/ItemBox.tsx:79`.
 - **Problem:** Direct `meshRef.current.position` mutation during drag can snap
@@ -368,19 +436,9 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
 - **Plan:** Validate the JWT `exp` locally (or fire `me` with a splash) on boot
   before treating the user as authed.
 
-### D7 — Solver silently drops items — ⬜ Open · UX
-- **Where:** `apps/api/app/contexts/scene/application/layout_solver.py:118`.
-- **Plan:** Return `(placements, skipped_ids)`; surface in the recompose response;
-  SidePanel toast: "Skipped N items — room too small."
-
 ### E1 — localStorage key style — ⬜ Open · Hygiene
 - **Where:** `dormvibe.auth` / `dormvibe.profile` vs `dormvibe-lang`.
 - **Plan:** Standardize on one separator with a one-shot boot migration.
-
-### E2 — CI enforcement — ⬜ Open · Hygiene
-- **Where:** `.github/` (workflows not yet inspected).
-- **Plan:** Confirm whether ruff/mypy/pytest/typecheck/vitest run on PRs; if not,
-  add a `ci.yml` that runs all and blocks merges.
 
 ### E3 — Unused `zod` dependency — ⬜ Open · Hygiene
 - **Where:** `apps/web/package.json` (no Zod schemas in `src/`).
@@ -402,3 +460,16 @@ T1/T2 were discovered while running the test suite to verify the same-day fixes
   web `tsc` clean; web `vitest` 35 passed; `ruff`/`mypy` clean on all edited files
   (pre-existing project-wide lint/type debt untouched — tracked as E2). All other
   entries remain open with plans.
+- **2026-06-08** — Continuation batch. Verified A2 is **not a bug** (added
+  `test_style_profile_endpoint.py`, 4 tests). Fixed B2 + C2 (refresh-token
+  rotation/reuse-detection/revocation + `/auth/logout`, with
+  `test_auth_refresh.py`), D3 (`meshRef` ordering), C13 (seeded 4 ADRs), and
+  D7 + C7 (recompose now returns `{project, warnings}`; skipped items and
+  out-of-bounds locks are flagged, never dropped). D9 closed (its README claims
+  are now true). Final state: **37 API tests pass**, web `tsc` clean, **35 vitest
+  pass**, no new ruff/mypy findings in changed files.
+- **2026-06-08 (cont.)** — Fixed D2 (Raise/Lower persists via `position.y`;
+  removed the `yOffsets` overlay) and E2 (cleared all ruff + mypy debt → both
+  green; added `.github/workflows/ci.yml` gating web + api on push/PR). Final
+  state: ruff clean, mypy clean (68 files), **37 API tests**, **35 vitest**, web
+  build all green.
