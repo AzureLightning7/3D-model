@@ -54,6 +54,22 @@ PRODUCT_EMBEDDINGS: Final[dict[str, list[float]]] = {
     "rug-round":  _vec(decor=1.0, cozy=0.9, social=0.6, warm_color=0.5, soft=0.9, low=1.0),
     "lamp-floor": _vec(lighting=1.0, cozy=0.7, study=0.5, warm_color=0.8, tall=1.0),
     "shelf-tall": _vec(storage=1.0, minimal=0.6, study=0.7, neutral=0.6, tall=1.0),
+    "sofa-grey": _vec(seating=1.0, social=0.7, cozy=0.5, neutral=0.8, soft=0.9),
+    "sofa-cream": _vec(seating=1.0, cozy=0.7, social=0.6, warm_color=0.7, soft=0.9),
+    "bed-double": _vec(sleeping=1.0, cozy=0.6, warm_color=0.5, soft=0.8, low=0.3),
+    "bed-platform": _vec(sleeping=1.0, minimal=0.7, neutral=0.8, soft=0.8, low=0.4),
+    "desk-white": _vec(work=1.0, study=0.9, minimal=0.9, neutral=0.9, low=0.4),
+    "desk-corner": _vec(work=1.0, study=0.8, storage=0.3, warm_color=0.7, minimal=0.4),
+    "chair-pink": _vec(seating=0.6, social=0.6, cozy=0.5, warm_color=0.6, soft=0.7),
+    "chair-wood": _vec(seating=0.6, social=0.6, warm_color=0.7, minimal=0.3, low=0.2),
+    "wardrobe-white": _vec(storage=1.0, tall=0.8, minimal=0.6, neutral=0.8),
+    "wardrobe-dark": _vec(storage=1.0, tall=0.8, minimal=0.5, neutral=0.7, cozy=0.2),
+    "chest-drawers": _vec(storage=1.0, tall=0.8, warm_color=0.6, cozy=0.4),
+    "bedside-table": _vec(storage=1.0, low=0.7, neutral=0.8, cozy=0.3),
+    "desk-lamp": _vec(lighting=1.0, study=0.6, cozy=0.4, warm_color=0.7),
+    "pendant-light": _vec(lighting=1.0, cozy=0.6, warm_color=0.7, tall=0.4),
+    "plant-large": _vec(decor=1.0, cozy=0.8, soft=0.6, cool_color=0.3, tall=0.5),
+    "mirror-full": _vec(decor=1.0, minimal=0.6, neutral=0.9, tall=0.7),
 }
 
 

@@ -1,5 +1,5 @@
 import { type ThreeEvent, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 import type { CatalogProduct, SceneItem } from "@/shared/types";
@@ -21,6 +21,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
   const selectedId = useSceneStore((s) => s.selectedId);
   const select = useSceneStore((s) => s.select);
   const dispatch = useSceneStore((s) => s.dispatch);
+  const controls = useThree((s) => s.controls) as { enabled: boolean } | null;
 
   const { camera, gl } = useThree();
   const dragging = useRef(false);
@@ -28,6 +29,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
   const raycaster = useRef(new THREE.Raycaster());
   const offset = useRef(new THREE.Vector3());
   const lastPos = useRef<{ x: number; z: number }>({ x: item.position.x, z: item.position.z });
+  const meshRef = useRef<THREE.Mesh>(null);
 
   const w = product?.widthM ?? 1.6;
   const d = product?.depthM ?? 0.8;
@@ -57,6 +59,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
     if (!hit) return;
     offset.current.set(item.position.x - hit.x, 0, item.position.z - hit.z);
     dragging.current = true;
+    if (controls) controls.enabled = false;
     lastPos.current = { x: item.position.x, z: item.position.z };
     (e.target as Element | null)?.setPointerCapture?.(e.pointerId);
   }
@@ -65,8 +68,10 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
     if (!dragging.current) return;
     const hit = planeIntersect(ndcFromEvent(e));
     if (!hit) return;
-    const halfW = roomWidthM / 2 - w / 2;
-    const halfD = roomDepthM / 2 - d / 2;
+    const scaledW = w * item.scale;
+    const scaledD = d * item.scale;
+    const halfW = roomWidthM / 2 - scaledW / 2 - 0.05;
+    const halfD = roomDepthM / 2 - scaledD / 2 - 0.05;
     const x = Math.max(-halfW, Math.min(halfW, hit.x + offset.current.x));
     const z = Math.max(-halfD, Math.min(halfD, hit.z + offset.current.z));
     lastPos.current = { x, z };
@@ -81,6 +86,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
   async function onPointerUp(e: ThreeEvent<PointerEvent>) {
     if (!dragging.current) return;
     dragging.current = false;
+    if (controls) controls.enabled = true;
     (e.target as Element | null)?.releasePointerCapture?.(e.pointerId);
     const { x, z } = lastPos.current;
     if (Math.hypot(x - item.position.x, z - item.position.z) < 0.005) return;
@@ -91,12 +97,16 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
     });
   }
 
-  const meshRef = useRef<THREE.Mesh>(null);
+  useEffect(() => {
+    return () => {
+      if (controls) controls.enabled = true;
+    };
+  }, [controls]);
 
   return (
     <mesh
       ref={meshRef}
-      position={[item.position.x, item.position.y + h / 2, item.position.z]}
+      position={[item.position.x, item.position.y + (h * item.scale) / 2, item.position.z]}
       rotation={[0, item.rotationYRad, 0]}
       castShadow
       onPointerDown={onPointerDown}
@@ -106,7 +116,7 @@ export function ItemBox({ item, product, roomWidthM, roomDepthM }: Props) {
       <boxGeometry args={[w * item.scale, h * item.scale, d * item.scale]} />
       <meshStandardMaterial
         color={color}
-        emissive={isSelected ? "#c4b5fd" : "#000000"}
+        emissive={isSelected ? "#2DD4BF" : "#000000"}
         emissiveIntensity={isSelected ? 0.35 : 0}
         roughness={0.6}
         metalness={0.05}

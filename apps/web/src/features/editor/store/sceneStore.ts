@@ -6,6 +6,10 @@
  *
  * The undo/redo stacks hold past/future *scenes* — replaying ops would require
  * inverses, which is more work than is needed for an MVP.
+ *
+ * Vertical position is part of `item.position.y` (persisted), not a separate
+ * client-only overlay — see the Raise/Lower handlers in SidePanel, which dispatch
+ * MOVE_ITEM.
  */
 
 import { create } from "zustand";
@@ -23,6 +27,7 @@ type State = {
   selectedId: string | null;
   saving: boolean;
   lastError: string | null;
+  lastWarnings: string[];
 
   load: (projectId: string, scene: Scene) => void;
   select: (id: string | null) => void;
@@ -47,9 +52,18 @@ export const useSceneStore = create<State>((set, get) => ({
   selectedId: null,
   saving: false,
   lastError: null,
+  lastWarnings: [],
 
   load: (projectId, scene) =>
-    set({ projectId, scene, past: [], future: [], selectedId: null, lastError: null }),
+    set({
+      projectId,
+      scene,
+      past: [],
+      future: [],
+      selectedId: null,
+      lastError: null,
+      lastWarnings: [],
+    }),
 
   select: (id) => set({ selectedId: id }),
 
@@ -97,10 +111,16 @@ export const useSceneStore = create<State>((set, get) => ({
       future: [],
       saving: true,
       lastError: null,
+      lastWarnings: [],
     });
     try {
-      const updated = await api.projects.recompose(projectId, args);
-      set({ scene: updated.scene, selectedId: null, saving: false });
+      const res = await api.projects.recompose(projectId, args);
+      set({
+        scene: res.project.scene,
+        selectedId: null,
+        saving: false,
+        lastWarnings: res.warnings ?? [],
+      });
     } catch (e) {
       set({
         past: get().past.slice(0, -1),
@@ -155,5 +175,6 @@ export const useSceneStore = create<State>((set, get) => ({
       selectedId: null,
       saving: false,
       lastError: null,
+      lastWarnings: [],
     }),
 }));

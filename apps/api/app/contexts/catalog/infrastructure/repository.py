@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import math
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,12 +24,21 @@ def _to_domain(m: ProductModel) -> Product:
     )
 
 
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
+    na = math.sqrt(sum(x * x for x in a)) or 1.0
+    nb = math.sqrt(sum(x * x for x in b)) or 1.0
+    return dot / (na * nb)
+
+
 class ProductRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def list_all(self) -> list[Product]:
-        rows = self.db.execute(select(ProductModel).order_by(ProductModel.id)).scalars()
+        rows = self.db.execute(
+            select(ProductModel).order_by(ProductModel.id)
+        ).scalars()
         return [_to_domain(r) for r in rows]
 
     def get(self, product_id: str) -> Product | None:
@@ -34,19 +46,17 @@ class ProductRepository:
         return _to_domain(m) if m else None
 
     def recommend_by_vector(
-        self, query_vector: list[float], *, limit: int = 8
+        self, query: list[float], limit: int = 8
     ) -> list[tuple[Product, float]]:
-        """Returns (product, cosine_distance) ranked by similarity (asc distance)."""
-        stmt = (
-            select(
-                ProductModel,
-                ProductModel.embedding.cosine_distance(query_vector).label("distance"),
-            )
-            .order_by("distance")
-            .limit(limit)
-        )
-        out: list[tuple[Product, float]] = []
-        for row in self.db.execute(stmt):
-            product_row, distance = row
-            out.append((_to_domain(product_row), float(distance)))
-        return out
+        all_products = self.db.query(ProductModel).all()
+        scored: list[tuple[float, ProductModel]] = []
+        for p in all_products:
+            try:
+                emb = json.loads(p.embedding) if isinstance(p.embedding, str) else p.embedding
+                if emb:
+                    score = _cosine(query, emb)
+                    scored.append((score, p))
+            except Exception:
+                continue
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [(_to_domain(p), 1.0 - score) for score, p in scored[:limit]]

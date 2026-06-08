@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import ForeignKey, String
@@ -25,4 +26,4 @@ class StyleProfileModel(Base, TimestampMixin):
     embedding: Mapped[list[float]] = mapped_column(
         Vector(EMBEDDING_DIM), nullable=False
     )
-    source_answers: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
+    source_answers: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)

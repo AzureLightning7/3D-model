@@ -79,11 +79,10 @@ def init_db() -> None:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
     # Import models so they register against Base.metadata.
+    from app.contexts.catalog.infrastructure import models as _catalog_models  # noqa: F401
     from app.contexts.identity.infrastructure import models as _identity_models  # noqa: F401
     from app.contexts.projects.infrastructure import models as _projects_models  # noqa: F401
-    from app.contexts.catalog.infrastructure import models as _catalog_models  # noqa: F401
     from app.contexts.style_profile.infrastructure import models as _profile_models  # noqa: F401
-
     from app.db.base import Base
 
     Base.metadata.create_all(bind=engine)

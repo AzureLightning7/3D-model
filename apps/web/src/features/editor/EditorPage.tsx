@@ -1,4 +1,4 @@
-import { OrbitControls } from "@react-three/drei";
+import { Grid, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
@@ -6,6 +6,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { api } from "@/shared/api";
 import { styles } from "@/shared/ui";
+import { useLangStore } from "@/store/langStore";
 
 import { ItemBox } from "./components/ItemBox";
 import { Room4Walls } from "./components/Room4Walls";
@@ -14,6 +15,7 @@ import { useSceneStore } from "./store/sceneStore";
 
 export function EditorPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const lang = useLangStore((s) => s.lang);
   const load = useSceneStore((s) => s.load);
   const reset = useSceneStore((s) => s.reset);
   const select = useSceneStore((s) => s.select);
@@ -60,13 +62,13 @@ export function EditorPage() {
     };
   }, []);
 
-  if (isLoading || !scene) return <div style={styles.page}>Loading…</div>;
+  if (isLoading || !scene) return <div style={styles.page}>{lang === "zh" ? "加载中…" : "Loading…"}</div>;
   if (error || !project) {
     return (
       <div style={styles.page}>
-        <p style={styles.err}>Failed to load project.</p>
-        <Link to="/projects" style={{ color: "#c4b5fd" }}>
-          ← Back
+        <p style={styles.err}>{lang === "zh" ? "项目加载失败。" : "Failed to load project."}</p>
+        <Link to="/projects" style={{ color: "var(--c-accent)" }}>
+          ← {lang === "zh" ? "返回" : "Back"}
         </Link>
       </div>
     );
@@ -75,6 +77,7 @@ export function EditorPage() {
   const w = project.roomWidthM;
   const d = project.roomDepthM;
   const h = project.roomHeightM;
+  const n = scene.items.length;
   const productById = new Map(catalog?.items.map((p) => [p.id, p]) ?? []);
 
   function exportPng() {
@@ -98,28 +101,34 @@ export function EditorPage() {
     <div style={{ ...styles.shell, display: "flex", flexDirection: "column", height: "100vh" }}>
       <div style={styles.navbar}>
         <div>
-          <Link to="/projects" style={{ color: "#c4b5fd", fontSize: 13 }}>
-            ← Projects
+          <Link to="/projects" style={{ color: "var(--c-accent)", fontSize: 13 }}>
+            ← {lang === "zh" ? "返回" : "Back"}
           </Link>
+          <div style={{ ...styles.muted, fontSize: 12, fontWeight: 700, marginTop: 8 }}>
+            {lang === "zh" ? "DormVibe 3D 编辑器" : "DormVibe 3D Editor"}
+          </div>
           <h2 style={{ margin: "4px 0 0" }}>{project.name}</h2>
+          <div
+            style={{ ...styles.muted, fontSize: 11, marginTop: 8, opacity: 0.85 }}
+            title={lang === "zh" ? "房间尺寸：宽 × 深 × 高" : "Room dimensions: width × depth × height"}
+          >
+            {w}m × {d}m × {h}m · {lang === "zh" ? `${n} 件家具` : `${n} items`}
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={styles.muted}>
-            {w} × {d} × {h} m · {scene.items.length} items
-          </span>
           <button
             type="button"
             onClick={exportPng}
             style={styles.buttonGhost}
-            aria-label="Export room as PNG"
+            aria-label={lang === "zh" ? "导出 PNG" : "Export PNG"}
           >
-            📸 Export PNG
+            📸 {lang === "zh" ? "导出 PNG" : "Export PNG"}
           </button>
           <Link
             to={`/projects/${id}/shopping-list`}
             style={{ ...styles.button, textDecoration: "none", display: "inline-block" }}
           >
-            🛒 Shopping list
+            🛒 {lang === "zh" ? "购物清单" : "Shopping List"}
           </Link>
         </div>
       </div>
@@ -132,15 +141,25 @@ export function EditorPage() {
             gl={{ antialias: true, preserveDrawingBuffer: true }}
             onPointerMissed={() => select(null)}
           >
-            <color attach="background" args={["#1a1033"]} />
-            <ambientLight intensity={0.6} />
-            <directionalLight
-              position={[w, h * 2, d]}
-              intensity={0.8}
-              castShadow
-              shadow-mapSize={[1024, 1024]}
-            />
+            <color attach="background" args={["#0A0A0A"]} />
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[5, 8, 5]} intensity={0.9} castShadow shadow-mapSize={[1024, 1024]} />
+            <directionalLight position={[-4, 6, -4]} intensity={0.3} color="#6060FF" />
             <Room4Walls width={w} depth={d} height={h} />
+            <Grid
+              position={[0, 0.001, 0]}
+              args={[w, d]}
+              cellSize={0.5}
+              cellThickness={0.5}
+              cellColor="#3A3A4A"
+              sectionSize={1}
+              sectionThickness={1}
+              sectionColor="#2DD4BF"
+              fadeDistance={30}
+              fadeStrength={1}
+              followCamera={false}
+              infiniteGrid={false}
+            />
             {scene.items.map((it) => (
               <ItemBox
                 key={it.id}

@@ -5,7 +5,7 @@ import { useThemeStore } from "./store";
 export function ThemeToggle() {
   const theme = useThemeStore((s) => s.theme);
   const toggle = useThemeStore((s) => s.toggle);
-  const isLight = theme === "light";
+  const isLight = theme === "dormvibe-light";
   return (
     <button
       type="button"

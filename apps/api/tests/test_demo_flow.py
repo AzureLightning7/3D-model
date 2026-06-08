@@ -47,7 +47,7 @@ def test_demo_flow_swap_sofa_keep_rug(test_app_client: TestClient) -> None:
         json={"style": "cozy"},
     )
     assert r.status_code == 200, r.text
-    scene = r.json()["scene"]
+    scene = r.json()["project"]["scene"]
     initial_version = scene["version"]
 
     # Find a sofa and a rug from the generated scene. If recompose didn't yield
@@ -101,7 +101,7 @@ def test_demo_flow_swap_sofa_keep_rug(test_app_client: TestClient) -> None:
         json={"style": "cozy", "preserveLocked": True},
     )
     assert r.status_code == 200, r.text
-    final = r.json()["scene"]
+    final = r.json()["project"]["scene"]
 
     # Step 7: rug unchanged.
     rug_after = next((it for it in final["items"] if it["id"] == rug_id), None)

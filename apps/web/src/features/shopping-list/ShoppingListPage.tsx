@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "@/shared/api";
 import type { CatalogProduct, SceneItem } from "@/shared/types";
 import { colors, styles } from "@/shared/ui";
+import { useLangStore } from "@/store/langStore";
 
 type LineItem = {
   product: CatalogProduct;
@@ -37,8 +38,17 @@ function rollUp(items: SceneItem[], catalog: CatalogProduct[]): LineItem[] {
   return [...lines.values()].sort((a, b) => b.subtotal - a.subtotal);
 }
 
+function getShopUrl(product: CatalogProduct) {
+  if (product.retailerUrl && product.retailerUrl !== "#") {
+    return product.retailerUrl;
+  }
+  const query = encodeURIComponent(product.name);
+  return `https://s.taobao.com/search?q=${query}`;
+}
+
 export function ShoppingListPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const lang = useLangStore((s) => s.lang);
   const [copied, setCopied] = useState(false);
 
   const { data: project } = useQuery({
@@ -60,7 +70,10 @@ export function ShoppingListPage() {
 
   async function share() {
     const url = window.location.href;
-    const text = `Check out my DormVibe room — ${itemCount} items, ${cny.format(total)}`;
+    const text =
+      lang === "zh"
+        ? `看看我的 DormVibe 房间 — ${itemCount} 件商品，${cny.format(total)}`
+        : `Check out my DormVibe room — ${itemCount} items, ${cny.format(total)}`;
     const nav = window.navigator as Navigator & {
       share?: (data: { title: string; text: string; url: string }) => Promise<void>;
     };
@@ -77,7 +90,7 @@ export function ShoppingListPage() {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
-  if (!project || !catalog) return <div style={styles.page}>Loading…</div>;
+  if (!project || !catalog) return <div style={styles.page}>{lang === "zh" ? "加载中…" : "Loading…"}</div>;
 
   return (
     <div style={styles.page}>
@@ -93,31 +106,37 @@ export function ShoppingListPage() {
       >
         <div>
           <Link to={`/projects/${id}/editor`} style={{ color: colors.accentHover, fontSize: 13 }}>
-            ← Back to editor
+            ← {lang === "zh" ? "返回" : "Back"}
           </Link>
-          <h1 style={{ margin: "4px 0 0" }}>{project.name} — shopping list</h1>
+          <h1 style={{ margin: "4px 0 0" }}>
+            {project.name} — {lang === "zh" ? "购物清单" : "Shopping List"}
+          </h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button style={styles.buttonGhost} onClick={share} aria-label="Share">
-            {copied ? "✓ Link copied" : "🔗 Share"}
+          <button style={styles.buttonGhost} onClick={share} aria-label={lang === "zh" ? "分享清单" : "Share list"}>
+            {copied ? (lang === "zh" ? "✓ 已复制链接" : "✓ Link copied") : `🔗 ${lang === "zh" ? "分享清单" : "Share list"}`}
           </button>
           <button
             style={styles.button}
             onClick={() => window.print()}
-            aria-label="Print or save as PDF"
+            aria-label={lang === "zh" ? "打印" : "Print"}
           >
-            🖨 Print
+            🖨 {lang === "zh" ? "打印" : "Print"}
           </button>
         </div>
       </div>
       <p style={{ ...styles.muted, marginTop: 0 }}>
-        {itemCount} item{itemCount === 1 ? "" : "s"} · prices as of{" "}
-        {new Date().toLocaleDateString()}
+        {lang === "zh"
+          ? `${itemCount} 件商品 · 截至 ${new Date().toLocaleDateString()} 的价格`
+          : `${itemCount} item${itemCount === 1 ? "" : "s"} · prices as of ${new Date().toLocaleDateString()}`}
       </p>
 
       {lines.length === 0 ? (
         <div style={styles.card}>
-          <p>Your room is empty. Add items in the editor first.</p>
+          <p style={{ marginTop: 0 }}>{lang === "zh" ? "还没有添加家具" : "No furniture added yet"}</p>
+          <Link to={`/projects/${id}/editor`} style={{ ...styles.button, textDecoration: "none", display: "inline-block" }}>
+            {lang === "zh" ? "去 3D 编辑器" : "Go to Editor"}
+          </Link>
         </div>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 12 }}>
@@ -160,17 +179,17 @@ export function ShoppingListPage() {
                 <div style={{ fontWeight: 600 }}>{cny.format(l.subtotal)}</div>
                 {l.count > 1 && (
                   <div style={{ ...styles.muted, fontSize: 11 }}>
-                    {cny.format(l.product.priceCny)} each
+                    {lang === "zh" ? `${cny.format(l.product.priceCny)} / 件` : `${cny.format(l.product.priceCny)} each`}
                   </div>
                 )}
               </div>
               <a
-                href={l.product.retailerUrl}
+                href={getShopUrl(l.product)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ ...styles.buttonGhost, textDecoration: "none", marginLeft: 8 }}
               >
-                Shop ↗
+                {lang === "zh" ? "去购买 ↗" : "Shop ↗"}
               </a>
             </li>
           ))}
@@ -188,14 +207,16 @@ export function ShoppingListPage() {
           }}
         >
           <div>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Total ({itemCount} items)</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>
+              {lang === "zh" ? `合计（${itemCount} 件商品）` : `Total (${itemCount} items)`}
+            </div>
             <div style={{ fontSize: 24, fontWeight: 700 }}>{cny.format(total)}</div>
           </div>
           <Link
             to={`/projects/${id}/editor`}
             style={{ ...styles.button, textDecoration: "none", display: "inline-block" }}
           >
-            Keep editing
+            {lang === "zh" ? "去 3D 编辑器" : "Go to Editor"}
           </Link>
         </div>
       )}

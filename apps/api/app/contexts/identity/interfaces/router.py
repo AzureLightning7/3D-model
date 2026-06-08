@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import jwt
 from fastapi import APIRouter, HTTPException, status
 
@@ -8,6 +10,7 @@ from app.contexts.identity.application.tokens import TokenPair, decode
 from app.contexts.identity.domain.user import (
     EmailAlreadyRegistered,
     InvalidCredentials,
+    RefreshTokenReuse,
     User,
 )
 from app.contexts.identity.interfaces.dto import (
@@ -21,6 +24,8 @@ from app.contexts.identity.interfaces.dto import (
 from app.core.deps import CurrentUser, DbSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+log = logging.getLogger(__name__)
 
 
 def _to_auth(user: User, tokens: TokenPair) -> AuthResponse:
@@ -70,18 +75,26 @@ def refresh(body: RefreshRequest, db: DbSession) -> TokenPairOut:
     try:
         payload = decode(body.refresh_token, expected_type="refresh")
     except jwt.InvalidTokenError as e:
+        log.info("auth.refresh.invalid_token", extra={"error": str(e)})
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid refresh token: {e}",
+            detail="Invalid refresh token",
         ) from None
     user_id = payload.get("sub")
-    if not isinstance(user_id, str):
+    jti = payload.get("jti")
+    if not isinstance(user_id, str) or not isinstance(jti, str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Malformed token")
     try:
-        tokens = IdentityService(db).refresh(user_id)
+        tokens = IdentityService(db).rotate_refresh(user_id=user_id, jti=jti)
+    except RefreshTokenReuse:
+        # A revoked token was replayed — every token for the user is now revoked.
+        log.warning("auth.refresh.reuse_detected", extra={"user_id": user_id})
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        ) from None
     except InvalidCredentials:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         ) from None
     return TokenPairOut(
         access_token=tokens.access_token,
@@ -89,6 +102,20 @@ def refresh(body: RefreshRequest, db: DbSession) -> TokenPairOut:
         access_expires_at=tokens.access_expires_at,
         refresh_expires_at=tokens.refresh_expires_at,
     )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(body: RefreshRequest, db: DbSession) -> None:
+    """Revoke the presented refresh token. Idempotent: an already-invalid or
+    expired token is treated as already logged out (still 204)."""
+    try:
+        payload = decode(body.refresh_token, expected_type="refresh")
+    except jwt.InvalidTokenError:
+        return None
+    jti = payload.get("jti")
+    if isinstance(jti, str):
+        IdentityService(db).logout(jti=jti)
+    return None
 
 
 @router.get("/me", response_model=UserOut)

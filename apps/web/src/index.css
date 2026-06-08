@@ -1,33 +1,36 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 
-:root,
-:root[data-theme="dormvibe-default"] {
-  --c-bg: #1a1033;
-  --c-bg2: #2d1b69;
-  --c-card: rgba(255, 255, 255, 0.06);
-  --c-card-border: rgba(255, 255, 255, 0.12);
-  --c-text: #f3f0ff;
-  --c-muted: rgba(243, 240, 255, 0.6);
-  --c-accent: #a78bfa;
-  --c-accent-hover: #c4b5fd;
-  --c-err: #ff9aa2;
-  --c-input-bg: rgba(0, 0, 0, 0.25);
-  --c-button-fg: #1a1033;
+:root {
+  --c-bg: #0A0A0A;
+  --c-bg2: #0A0A0A;
+  --c-card: #18181B;
+  --c-card-border: #3F3F46;
+  --c-text: #FFFFFF;
+  --c-muted: #A1A1AA;
+  --c-accent: #2DD4BF;
+  --c-accent-hover: #14B8A6;
+  --c-err: #EF4444;
+  --c-input-bg: #27272A;
+  --c-button-fg: #0A0A0A;
 }
 
-:root[data-theme="light"] {
-  --c-bg: #faf7ff;
-  --c-bg2: #ede4ff;
-  --c-card: rgba(26, 16, 51, 0.04);
-  --c-card-border: rgba(26, 16, 51, 0.12);
-  --c-text: #1a1033;
-  --c-muted: rgba(26, 16, 51, 0.6);
-  --c-accent: #7c5cd6;
-  --c-accent-hover: #a78bfa;
-  --c-err: #c2185b;
-  --c-input-bg: rgba(255, 255, 255, 0.9);
-  --c-button-fg: #ffffff;
+/* Light theme. Activated via <html data-theme="dormvibe-light"> (themes/store.ts).
+   Components reference the --c-* tokens, so overriding them here re-skins the app
+   without recompiling. Note: a few surfaces still hardcode dark hex values and
+   are tracked separately (see docs/ERROR_LOG.md A5). */
+[data-theme="dormvibe-light"] {
+  --c-bg: #FAFAF9;
+  --c-bg2: #F4F4F5;
+  --c-card: #FFFFFF;
+  --c-card-border: #E4E4E7;
+  --c-text: #18181B;
+  --c-muted: #52525B;
+  --c-accent: #0D9488;
+  --c-accent-hover: #0F766E;
+  --c-err: #DC2626;
+  --c-input-bg: #F4F4F5;
+  --c-button-fg: #FFFFFF;
 }
 
 body {

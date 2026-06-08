@@ -7,6 +7,7 @@ don't need a real Postgres+pgvector instance just to exercise endpoint logic.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import tempfile
@@ -72,7 +73,9 @@ def test_app_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
                     width_m=p.width_m,
                     depth_m=p.depth_m,
                     height_m=p.height_m,
-                    embedding=for_product(p.id),
+                    # embedding column is Text; mirror seed.py and store JSON
+                    # (raw list fails on SQLite with "type 'list' is not supported").
+                    embedding=json.dumps(for_product(p.id)),
                 )
             )
         db.commit()
@@ -83,7 +86,7 @@ def test_app_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     from app.contexts.catalog.infrastructure import repository as repo_mod
 
     def _py_cosine(v1: list[float], v2: list[float]) -> float:
-        dot = sum(a * b for a, b in zip(v1, v2))
+        dot = sum(a * b for a, b in zip(v1, v2, strict=False))
         n1 = math.sqrt(sum(a * a for a in v1)) or 1.0
         n2 = math.sqrt(sum(b * b for b in v2)) or 1.0
         return 1.0 - dot / (n1 * n2)

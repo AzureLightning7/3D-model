@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ def seed_catalog(db: Session) -> None:
                 height_m=p.height_m,
                 price_cny=p.price_cny,
                 retailer_url=p.retailer_url,
-                embedding=for_product(p.id),
+                embedding=json.dumps(for_product(p.id)),
             )
         )
         inserted += 1

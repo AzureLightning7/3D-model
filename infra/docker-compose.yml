@@ -57,6 +57,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # Mirrors the HEALTHCHECK baked into apps/api/Dockerfile so `web`'s
+      # `depends_on: api: condition: service_healthy` has a check to wait on.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2).status == 200 else 1)\""]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
     # --reload watches /app/app; without it the container would need a rebuild
     # for every code change.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]

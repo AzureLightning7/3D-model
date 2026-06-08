@@ -14,11 +14,19 @@ def _env_int(name: str, default: int) -> int:
     return int(raw) if raw else default
 
 
+def _env_list(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    return tuple(part.strip() for part in raw.split(",") if part.strip())
+
+
 @dataclass(frozen=True)
 class Settings:
     app_env: Literal["local", "staging", "production"]
     app_log_level: str
     app_base_url: str
+    cors_origins: tuple[str, ...]
 
     database_url: str
     storage_dir: str
@@ -41,20 +49,35 @@ class Settings:
     openai_api_key: str
 
 
+_INSECURE_JWT_DEFAULT = "dev-insecure-change-me"
+
+
 def load_settings() -> Settings:
     env = _env("APP_ENV", "local")
     if env not in ("local", "staging", "production"):
         raise ValueError(f"Invalid APP_ENV: {env}")
+
+    jwt_secret = _env("JWT_SECRET", _INSECURE_JWT_DEFAULT)
+    if env != "local" and jwt_secret in ("", _INSECURE_JWT_DEFAULT):
+        raise RuntimeError(
+            f"JWT_SECRET must be overridden with a strong value when APP_ENV is {env!r}; "
+            "refusing to start with the insecure default."
+        )
+
     return Settings(
         app_env=env,  # type: ignore[arg-type]
         app_log_level=_env("APP_LOG_LEVEL", "info"),
         app_base_url=_env("APP_BASE_URL", "http://localhost:8000"),
+        cors_origins=_env_list(
+            "APP_CORS_ORIGINS",
+            ("http://localhost:5173", "http://127.0.0.1:5173"),
+        ),
         database_url=_env("DATABASE_URL", "sqlite:///./dormvibe.db"),
         storage_dir=_env("STORAGE_DIR", "./storage"),
         storage_public_base_url=_env(
             "STORAGE_PUBLIC_BASE_URL", "http://localhost:8000/storage"
         ),
-        jwt_secret=_env("JWT_SECRET", "dev-insecure-change-me"),
+        jwt_secret=jwt_secret,
         jwt_access_ttl_seconds=_env_int("JWT_ACCESS_TTL_SECONDS", 900),
         jwt_refresh_ttl_seconds=_env_int("JWT_REFRESH_TTL_SECONDS", 2592000),
         ai_default_llm_provider=_env("AI_DEFAULT_LLM_PROVIDER", "qwen"),

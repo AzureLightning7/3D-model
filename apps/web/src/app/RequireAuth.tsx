@@ -1,12 +1,13 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-
 import { useAuthStore } from "@/features/auth/store";
 
 export function RequireAuth() {
-  const tokens = useAuthStore((s) => s.tokens);
-  const loc = useLocation();
-  if (!tokens?.accessToken) {
-    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  const user = useAuthStore((s) => s.user);
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
+
   return <Outlet />;
 }

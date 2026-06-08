@@ -10,7 +10,7 @@ def configure_logging(level: str = "info") -> None:
     root.setLevel(level.upper())
     handler = logging.StreamHandler()
     handler.setFormatter(
-        jsonlogger.JsonFormatter(
+        jsonlogger.JsonFormatter(  # type: ignore[attr-defined]
             "%(asctime)s %(levelname)s %(name)s %(message)s",
             rename_fields={"asctime": "ts", "levelname": "level"},
         )

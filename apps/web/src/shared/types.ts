@@ -89,6 +89,7 @@ export type Project = {
   id: string;
   ownerId: string;
   name: string;
+  thumbnailUrl?: string | null;
   roomWidthM: number;
   roomDepthM: number;
   roomHeightM: number;
@@ -96,3 +97,5 @@ export type Project = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type RecomposeResponse = { project: Project; warnings: string[] };

@@ -8,7 +8,7 @@ in agreement via the fixture corpus under `apps/api/tests/fixtures/scene_ops/`.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from app.contexts.scene.domain.scene_graph import (
     AddItem,
@@ -43,7 +43,9 @@ class ItemLocked(SceneOpError):
     pass
 
 
-def _replace_item(items: list[SceneItem], target_id: str, replacement: SceneItem) -> list[SceneItem]:
+def _replace_item(
+    items: list[SceneItem], target_id: str, replacement: SceneItem
+) -> list[SceneItem]:
     out: list[SceneItem] = []
     found = False
     for it in items:
@@ -66,7 +68,9 @@ def _assert_in_room(item: SceneItem, scene: Scene) -> None:
     if not (-half_d - margin <= item.position.z <= half_d + margin):
         raise ItemOutsideRoom(f"item {item.id} z={item.position.z} outside ±{half_d}")
     if not (-margin <= item.position.y <= scene.room.height_m + margin):
-        raise ItemOutsideRoom(f"item {item.id} y={item.position.y} outside [0,{scene.room.height_m}]")
+        raise ItemOutsideRoom(
+            f"item {item.id} y={item.position.y} outside [0,{scene.room.height_m}]"
+        )
 
 
 def _find(items: list[SceneItem], item_id: str) -> SceneItem:
