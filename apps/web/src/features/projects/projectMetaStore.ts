@@ -4,10 +4,11 @@ import { persist } from "zustand/middleware";
 import type { ProjectStage } from "./projectLifecycle";
 
 export type ProjectAsset = {
-  kind: "photo";
+  kind: "photo" | "generated_image";
   name: string;
   sizeBytes: number;
   mime: string;
+  url?: string;
 };
 
 export type ProjectConcept = {

@@ -189,6 +189,34 @@ export const api = {
       }),
     latest: () => request<StyleProfile>("/style-profiles/me/latest"),
   },
+  upload: {
+    transformRoom: async (body: {
+      roomType: string;
+      style: string;
+      colorPalette: string;
+      budget: string;
+      interests: string[];
+      origin: string;
+      roomDna: string;
+    }): Promise<{ success: boolean; imageUrl: string; promptUsed: string }> => {
+      const res = await request<{ success: boolean; image_url: string; prompt_used: string }>(
+        "/transform-room",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            room_type: body.roomType,
+            style: body.style,
+            color_palette: body.colorPalette,
+            budget: body.budget,
+            interests: body.interests,
+            origin: body.origin,
+            room_dna: body.roomDna,
+          }),
+        },
+      );
+      return { success: res.success, imageUrl: res.image_url, promptUsed: res.prompt_used };
+    },
+  },
 };
 
 export { ApiError };

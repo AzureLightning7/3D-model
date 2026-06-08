@@ -7,8 +7,10 @@ import { styles } from "@/shared/ui";
 import { useLangStore } from "@/store/langStore";
 
 import { useProjectMetaStore } from "@/features/projects/projectMetaStore";
+import { useProfileStore } from "@/features/survey/store";
+import type { EditOp, Project, SceneItem } from "@/shared/types";
 
-type StepId = "photo" | "analysis" | "details" | "profile" | "save";
+type StepId = "photo" | "analysis" | "result" | "details" | "profile" | "save";
 
 type RoomType = "dorm" | "bedroom" | "studio" | "living";
 
@@ -18,6 +20,7 @@ type Analysis = {
   lighting: "bright" | "mixed" | "soft";
   clutter: "low" | "medium" | "high";
   note: string;
+  generatedImageUrl?: string;
 };
 
 type RoomDetails = {
@@ -40,6 +43,11 @@ function getSteps(lang: "zh" | "en"): Array<{ id: StepId; title: string; sub: st
       id: "analysis",
       title: lang === "zh" ? "我们注意到" : "What We Noticed",
       sub: lang === "zh" ? "让空间更像你" : "A few signals from your space.",
+    },
+    {
+      id: "result",
+      title: lang === "zh" ? "你的 AI 房间" : "Your AI Room",
+      sub: lang === "zh" ? "下一步想做什么？" : "What would you like to do next?",
     },
     {
       id: "details",
@@ -76,31 +84,12 @@ function roomTypeLabel(t: RoomType, lang: "zh" | "en") {
   return "Living Room";
 }
 
-function simulateAnalysis(file: File, lang: "zh" | "en"): Promise<Analysis> {
-  const seed = file.size % 100;
-  const confidence = clamp(0.65 + (seed / 100) * 0.25, 0.65, 0.9);
-  const suggestedRoomType: RoomType = seed < 25 ? "dorm" : seed < 50 ? "bedroom" : seed < 75 ? "studio" : "living";
-  const lighting: Analysis["lighting"] = seed < 33 ? "bright" : seed < 66 ? "mixed" : "soft";
-  const clutter: Analysis["clutter"] = seed < 33 ? "low" : seed < 66 ? "medium" : "high";
-  const note =
-    lang === "zh"
-      ? lighting === "bright"
-        ? "检测到强自然光，非常适合安静高效的氛围。"
-        : lighting === "soft"
-          ? "检测到柔和光线，我们会为你营造温暖的氛围。"
-          : "检测到混合光线，我们会平衡任务照明与氛围灯光。"
-      : lighting === "bright"
-        ? "Strong natural light detected. Great for a calm + productive vibe."
-        : lighting === "soft"
-          ? "Softer lighting detected. We'll lean into warmth and ambient layers."
-          : "Mixed lighting detected. We'll balance task and ambient lighting.";
-  return new Promise((resolve) => window.setTimeout(() => resolve({ suggestedRoomType, confidence, lighting, clutter, note }), 1400));
-}
-
 export function UploadRoomPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const lang = useLangStore((s) => s.lang);
+  const roomDna = useProfileStore((s) => s.roomDNA) ?? "";
+  const rawAnswers = useProfileStore((s) => s.rawAnswers);
   const initMeta = useProjectMetaStore((s) => s.init);
   const addAsset = useProjectMetaStore((s) => s.addAsset);
   const addActivity = useProjectMetaStore((s) => s.addActivity);
@@ -128,8 +117,11 @@ export function UploadRoomPage() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genPct, setGenPct] = useState(0);
 
-  const storyStep: 1 | 2 | 3 = step.id === "photo" ? 1 : step.id === "analysis" ? 2 : 3;
+  const storyStep: 1 | 2 | 3 =
+    step.id === "photo" ? 1 : step.id === "analysis" || step.id === "result" ? 2 : 3;
 
   useEffect(() => {
     if (!file) return;
@@ -142,6 +134,8 @@ export function UploadRoomPage() {
     if (step.id !== "analysis") return;
     if (!file) return;
     let alive = true;
+    setIsGenerating(true);
+    setGenPct(5);
     setError(null);
     setAnalysis(null);
     setAnalysisPhase(0);
@@ -153,23 +147,94 @@ export function UploadRoomPage() {
       i += 1;
       setAnalysisPhase(phases[Math.min(i, phases.length - 1)]!);
       if (i >= phases.length - 1) window.clearInterval(t);
-    }, 600);
+    }, 800);
 
-    void simulateAnalysis(file, lang).then((res) => {
+    const startedAt = Date.now();
+    const p = window.setInterval(() => {
       if (!alive) return;
-      setAnalysis(res);
-      setDetails((d) => ({
-        ...d,
-        roomType: res.suggestedRoomType,
-        name: d.name === defaultRoomName ? roomTypeLabel(res.suggestedRoomType, lang) : d.name,
-      }));
-    });
+      const elapsed = Date.now() - startedAt;
+      const pct = 95 * (1 - Math.exp(-elapsed / 12000));
+      setGenPct((cur) => Math.max(cur, Math.min(95, pct)));
+    }, 200);
+
+    const ra = rawAnswers as {
+      interests?: unknown;
+      answers?: { palette?: unknown; budget?: unknown; origin?: unknown };
+    } | null;
+
+    const interests = Array.isArray(ra?.interests) ? (ra!.interests as string[]) : [];
+    const palette = typeof ra?.answers?.palette === "string" ? ra.answers.palette : "neutral";
+    const budget = typeof ra?.answers?.budget === "string" ? ra.answers.budget : "mid";
+    const origin = typeof ra?.answers?.origin === "string" ? ra.answers.origin : "";
+
+    const colorPaletteMap: Record<string, string> = {
+      warm: "warm amber and terracotta",
+      cool: "cool teal and grey",
+      bold: "bold and expressive mixed",
+      neutral: "neutral and balanced",
+    };
+
+    const budgetMap: Record<string, string> = {
+      low: "budget-friendly",
+      mid: "mid-range",
+      high: "premium",
+      luxury: "luxury",
+    };
+
+    void api.upload
+      .transformRoom({
+        roomType: details.roomType,
+        style: "modern minimalist",
+        colorPalette: colorPaletteMap[palette] ?? "neutral",
+        budget: budgetMap[budget] ?? "mid-range",
+        interests,
+        origin,
+        roomDna,
+      })
+      .then((result) => {
+        if (!alive) return;
+        window.clearInterval(t);
+        window.clearInterval(p);
+        setAnalysisPhase(3);
+        const apiBase = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+        const publicBase = apiBase.replace(/\/api\/v1\/?$/, "");
+        const fullUrl = publicBase + result.imageUrl;
+        setAnalysis({
+          suggestedRoomType: details.roomType,
+          confidence: 0.92,
+          lighting: "bright",
+          clutter: "low",
+          note:
+            lang === "zh"
+              ? "AI 已根据你的风格生成了房间设计方案。"
+              : "AI has generated a personalised room design based on your style.",
+          generatedImageUrl: fullUrl,
+        });
+        setGenPct(100);
+        setStepIndex(2);
+        window.setTimeout(() => setIsGenerating(false), 450);
+      })
+      .catch((err: unknown) => {
+        if (!alive) return;
+        window.clearInterval(t);
+        window.clearInterval(p);
+        setIsGenerating(false);
+        if (err instanceof ApiError && err.status === 503) {
+          setError(lang === "zh" ? "API Key 未配置——请联系团队。" : "API key not configured — please contact the team.");
+          return;
+        }
+        const errMsg = err instanceof Error ? err.message : String(err);
+        setError(lang === "zh" ? `AI 生成失败：${errMsg}` : `AI generation failed: ${errMsg}`);
+        console.error("Full error:", err);
+      });
 
     return () => {
       alive = false;
+      setIsGenerating(false);
+      window.clearInterval(p);
       window.clearInterval(t);
     };
-  }, [file, step.id]);
+  }, [details.roomType, file, lang, rawAnswers, roomDna, step.id]);
 
   const insights = useMemo(() => {
     if (!analysis) return [];
@@ -236,7 +301,73 @@ export function UploadRoomPage() {
     };
   }, [analysis, defaultRoomName, details.depthM, details.existingFurniture.length, details.heightM, details.name, details.roomType, details.widthM, lang]);
 
-  const save = useMutation({
+  function getStarterStyle() {
+    if (roomDna?.startsWith("C")) return "cozy";
+    if (roomDna?.startsWith("S")) return "vibrant";
+    return "cozy";
+  }
+
+  function newItemId() {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  async function seedStarterKit(project: Project) {
+    const style = getStarterStyle();
+    const w = project.scene.room.widthM;
+    const d = project.scene.room.depthM;
+    const margin = 0.6;
+
+    let ranked = (await api.catalog.recommend({ style, limit: 8 })).items ?? [];
+    if (ranked.length === 0) {
+      ranked = (await api.catalog.list()).items.slice(0, 8).map((p) => ({ ...p, distance: 0 }));
+    }
+
+    const items = ranked.slice(0, 6).map((p, idx): SceneItem => {
+      const cols = 3;
+      const x0 = -w / 2 + margin;
+      const z0 = -d / 2 + margin;
+      const stepX = Math.max(0.9, (w - margin * 2) / cols);
+      const stepZ = 1.2;
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const x = Math.min(w / 2 - margin, x0 + col * stepX);
+      const z = Math.min(d / 2 - margin, z0 + row * stepZ);
+      return {
+        id: newItemId(),
+        catalogId: p.id,
+        name: p.name,
+        position: { x, y: 0, z },
+        rotationYRad: 0,
+        scale: 1,
+        locked: false,
+      };
+    });
+
+    if (!items.length) return;
+
+    const ops: EditOp[] = items.map((item) => ({ op: "ADD_ITEM", item }));
+    await api.projects.applyEdits(project.id, project.scene.version, ops);
+  }
+
+  function afterCreateCommon(p: Project) {
+    qc.invalidateQueries({ queryKey: ["projects"] });
+    initMeta(p.id);
+    if (file) {
+      addAsset(p.id, { kind: "photo", name: file.name, sizeBytes: file.size, mime: file.type || "image/*" });
+    }
+    if (analysis?.generatedImageUrl) {
+      addAsset(p.id, {
+        kind: "generated_image",
+        name: "ai-generated-room.png",
+        url: analysis.generatedImageUrl,
+        sizeBytes: 0,
+        mime: "image/png",
+      });
+    }
+  }
+
+  const createForEditor = useMutation({
     mutationFn: () =>
       api.projects.create({
         name: profile.title,
@@ -245,14 +376,32 @@ export function UploadRoomPage() {
         roomHeightM: details.heightM,
       }),
     onSuccess: (p) => {
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      initMeta(p.id);
-      if (file) {
-        addAsset(p.id, { kind: "photo", name: file.name, sizeBytes: file.size, mime: file.type || "image/*" });
-      }
-      addActivity(p.id, "Room uploaded");
-      setStage(p.id, "room_uploaded");
-      nav(`/projects/${p.id}`, { replace: true });
+      afterCreateCommon(p);
+      addActivity(p.id, "Entered editor");
+      setStage(p.id, "editing");
+      nav(`/projects/${p.id}/editor`, { replace: true });
+    },
+    onError: (e) => setError(e instanceof ApiError ? String(e.detail) : (e as Error).message),
+  });
+
+  const createForShopping = useMutation({
+    mutationFn: async () => {
+      const p = await api.projects.create({
+        name: profile.title,
+        roomWidthM: details.widthM,
+        roomDepthM: details.depthM,
+        roomHeightM: details.heightM,
+      });
+      try {
+        await seedStarterKit(p);
+      } catch {}
+      return p;
+    },
+    onSuccess: (p) => {
+      afterCreateCommon(p);
+      addActivity(p.id, "Starter kit added");
+      setStage(p.id, "design_selected");
+      nav(`/projects/${p.id}/shopping-list`, { replace: true });
     },
     onError: (e) => setError(e instanceof ApiError ? String(e.detail) : (e as Error).message),
   });
@@ -260,6 +409,7 @@ export function UploadRoomPage() {
   const canNext = useMemo(() => {
     if (step.id === "photo") return !!file;
     if (step.id === "analysis") return !!analysis;
+    if (step.id === "result") return !!analysis;
     if (step.id === "details") return details.widthM > 0 && details.depthM > 0 && details.heightM > 0;
     if (step.id === "profile") return true;
     return false;
@@ -277,6 +427,63 @@ export function UploadRoomPage() {
 
   return (
     <div style={styles.page}>
+      {isGenerating && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(10,10,10,0.72)",
+            backdropFilter: "blur(10px)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 50,
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: "min(560px, 100%)",
+              borderRadius: 18,
+              border: "1px solid rgba(63,63,70,0.9)",
+              background: "rgba(24,24,27,0.92)",
+              boxShadow: "0 20px 70px rgba(0,0,0,0.55)",
+              padding: 18,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+              <div style={{ fontWeight: 950, fontSize: 14 }}>
+                {lang === "zh" ? "AI 正在生成你的房间…" : "Generating your room with AI…"}
+              </div>
+              <div style={{ color: "var(--c-muted)", fontSize: 12, fontWeight: 900 }}>
+                {Math.round(Math.min(genPct, 100))}%
+              </div>
+            </div>
+            <div style={{ marginTop: 10, color: "var(--c-muted)", fontSize: 13, lineHeight: 1.6 }}>
+              {analysisPhase <= 1
+                ? lang === "zh"
+                  ? "正在分析照片与风格偏好"
+                  : "Analyzing your photo and preferences"
+                : analysisPhase === 2
+                  ? lang === "zh"
+                    ? "正在生成设计图"
+                    : "Rendering your design"
+                  : lang === "zh"
+                    ? "马上完成"
+                    : "Almost done"}
+            </div>
+            <div style={{ marginTop: 14, height: 10, borderRadius: 999, background: "#18181B", border: "1px solid rgba(63,63,70,0.9)", overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: `${genPct >= 100 ? 100 : clamp(genPct, 8, 95)}%`,
+                  background: "linear-gradient(90deg, #2DD4BF, #A855F7)",
+                  transition: "width 250ms ease",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
         <div>
           <div style={{ color: "var(--c-muted)", fontSize: 12, fontWeight: 900, letterSpacing: 2 }}>{lang === "zh" ? "设计旅程" : "DESIGN JOURNEY"}</div>
@@ -427,7 +634,120 @@ export function UploadRoomPage() {
                     <div style={{ marginTop: 6, color: "var(--c-muted)", fontSize: 13, lineHeight: 1.6 }}>{analysis.note}</div>
                   </div>
                 )}
+
+                {analysis?.generatedImageUrl && (
+                  <div style={{ marginTop: 14 }}>
+                    <div
+                      style={{
+                        color: "var(--c-muted)",
+                        fontSize: 12,
+                        fontWeight: 900,
+                        letterSpacing: 2,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {lang === "zh" ? "AI 生成结果" : "AI GENERATED RESULT"}
+                    </div>
+                    <div
+                      style={{
+                        height: 280,
+                        borderRadius: 16,
+                        border: "2px solid rgba(45,212,191,0.4)",
+                        overflow: "hidden",
+                        background: `url(${analysis.generatedImageUrl}) center/cover`,
+                        boxShadow: "0 0 40px rgba(45,212,191,0.15)",
+                      }}
+                    />
+                    <div
+                      style={{
+                        marginTop: 8,
+                        color: "var(--c-muted)",
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        fontStyle: "italic",
+                      }}
+                    >
+                      {lang === "zh"
+                        ? "这是根据你的风格偏好生成的 AI 房间设计图。"
+                        : "This is your AI-generated room design based on your style preferences."}
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {step.id === "result" && (
+          <div>
+            <div style={{ fontWeight: 950, fontSize: 15 }}>{lang === "zh" ? "2. 你的 AI 房间" : "2. Your AI Room"}</div>
+            <div style={{ marginTop: 10, color: "var(--c-muted)", fontSize: 13, lineHeight: 1.6 }}>
+              {lang === "zh"
+                ? "选择下一步：购买推荐家具，或进入 3D 编辑器继续设计。"
+                : "Choose what to do next: shop the recommended items, or continue designing in 3D."}
+            </div>
+
+            <div style={{ marginTop: 14, display: "grid", gap: 14 }}>
+              <div
+                style={{
+                  height: 320,
+                  borderRadius: 16,
+                  border: "2px solid rgba(45,212,191,0.35)",
+                  overflow: "hidden",
+                  background: analysis?.generatedImageUrl
+                    ? `url(${analysis.generatedImageUrl}) center/cover`
+                    : "linear-gradient(135deg, #18181B, #27272A)",
+                  boxShadow: "0 0 40px rgba(45,212,191,0.10)",
+                }}
+              />
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => createForShopping.mutate()}
+                  disabled={!analysis || createForShopping.isPending || createForEditor.isPending}
+                  style={{
+                    padding: "18px 16px",
+                    borderRadius: 16,
+                    cursor: "pointer",
+                    border: "1px solid rgba(45,212,191,0.35)",
+                    background: "rgba(45,212,191,0.10)",
+                    color: "var(--c-text)",
+                    fontWeight: 950,
+                  }}
+                >
+                  {createForShopping.isPending ? (lang === "zh" ? "准备清单中…" : "Preparing list…") : lang === "zh" ? "购买家具" : "Shop Items"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStepIndex(3)}
+                  disabled={!analysis || createForShopping.isPending || createForEditor.isPending}
+                  style={{
+                    padding: "18px 16px",
+                    borderRadius: 16,
+                    cursor: "pointer",
+                    border: "1px solid rgba(168,85,247,0.35)",
+                    background: "rgba(168,85,247,0.10)",
+                    color: "var(--c-text)",
+                    fontWeight: 950,
+                  }}
+                >
+                  {lang === "zh" ? "进入 3D 编辑" : "Edit in 3D"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStepIndex(0)}
+                style={{
+                  ...styles.buttonGhost,
+                  width: "fit-content",
+                  justifySelf: "center",
+                }}
+                disabled={createForShopping.isPending || createForEditor.isPending}
+              >
+                {lang === "zh" ? "重新生成" : "Generate again"}
+              </button>
             </div>
           </div>
         )}
@@ -583,20 +903,40 @@ export function UploadRoomPage() {
       </div>
 
       <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <button type="button" style={styles.buttonGhost} onClick={goBack} disabled={stepIndex === 0 || save.isPending}>
+        <button
+          type="button"
+          style={styles.buttonGhost}
+          onClick={goBack}
+          disabled={stepIndex === 0 || createForEditor.isPending || createForShopping.isPending}
+        >
           {lang === "zh" ? "← 返回" : "← Back"}
         </button>
         {step.id === "photo" ? (
-          <button type="button" style={styles.button} onClick={goNext} disabled={!canNext || save.isPending}>
+          <button
+            type="button"
+            style={styles.button}
+            onClick={goNext}
+            disabled={!canNext || createForEditor.isPending || createForShopping.isPending}
+          >
             {lang === "zh" ? "开始蜕变" : "Start the Transformation"}
           </button>
         ) : step.id === "analysis" ? (
-          <button type="button" style={styles.button} onClick={goNext} disabled={!canNext || save.isPending}>
+          <button
+            type="button"
+            style={styles.button}
+            onClick={goNext}
+            disabled={!canNext || createForEditor.isPending || createForShopping.isPending}
+          >
             {lang === "zh" ? "继续" : "Continue"}
           </button>
-        ) : (
-          <button type="button" style={styles.button} onClick={() => save.mutate()} disabled={!canNext || save.isPending}>
-            {save.isPending ? (lang === "zh" ? "进入中…" : "Entering…") : lang === "zh" ? "开始设计" : "Begin Designing"}
+        ) : step.id === "result" ? null : (
+          <button
+            type="button"
+            style={styles.button}
+            onClick={() => createForEditor.mutate()}
+            disabled={!canNext || createForEditor.isPending || createForShopping.isPending}
+          >
+            {createForEditor.isPending ? (lang === "zh" ? "进入中…" : "Entering…") : lang === "zh" ? "开始设计" : "Begin Designing"}
           </button>
         )}
       </div>
