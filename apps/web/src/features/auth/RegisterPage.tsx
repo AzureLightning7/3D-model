@@ -38,6 +38,7 @@ export function RegisterPage() {
     submit: lang === "zh" ? "注册" : "Create Account",
     hasAccount: lang === "zh" ? "已有账号？" : "Already have an account?",
     signIn: lang === "zh" ? "登录" : "Sign in",
+    tryGuest: lang === "zh" ? "免注册直接体验" : "Try it — no sign-up needed",
   };
 
   const confirmLabel = lang === "zh" ? "确认密码" : "Confirm password";
@@ -76,6 +77,20 @@ export function RegisterPage() {
       const r = await api.auth.register(email, password, displayName);
       setSession(r.user, r.tokens);
       nav("/onboarding", { replace: true });
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onGuest() {
+    setError(null);
+    setBusy(true);
+    try {
+      const r = await api.auth.guest();
+      setSession(r.user, r.tokens);
+      nav("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? String(err.detail) : (err as Error).message);
     } finally {
@@ -220,6 +235,21 @@ export function RegisterPage() {
                 {busy ? "…" : t.submit}
               </button>
             </form>
+
+            <button
+              type="button"
+              className="dvSubmit"
+              onClick={onGuest}
+              disabled={busy}
+              style={{
+                marginTop: 10,
+                background: "transparent",
+                color: "var(--c-accent)",
+                border: "1px solid var(--c-accent)",
+              }}
+            >
+              {busy ? "…" : t.tryGuest}
+            </button>
 
             <div className="dvBottom">
               {t.hasAccount}{" "}

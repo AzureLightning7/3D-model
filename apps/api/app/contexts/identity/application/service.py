@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+
 from sqlalchemy.orm import Session
 
 from app.contexts.identity.application.password import hash_password, verify_password
@@ -38,6 +40,20 @@ class IdentityService:
             email=email,
             display_name=display_name or email.split("@", 1)[0],
             password_hash=hash_password(password),
+        )
+        return user, self._issue(user.id)
+
+    def register_guest(self) -> tuple[User, TokenPair]:
+        """Create a throwaway guest account with random, unguessable credentials.
+
+        Lets visitors try the app without signing up: the guest never authenticates
+        with these credentials again — the browser keeps the issued tokens.
+        """
+        suffix = secrets.token_hex(8)
+        user = self.repo.create(
+            email=f"guest-{suffix}@guest.dormvibe.local",
+            display_name="Guest",
+            password_hash=hash_password(secrets.token_urlsafe(24)),
         )
         return user, self._issue(user.id)
 

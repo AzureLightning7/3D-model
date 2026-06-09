@@ -118,6 +118,8 @@ export const api = {
         { method: "POST", body: JSON.stringify({ email, password }) },
         { auth: false },
       ),
+    guest: () =>
+      request<AuthResponse>("/auth/guest", { method: "POST" }, { auth: false }),
     refresh: (refreshToken: string) =>
       request<TokenPair>(
         "/auth/refresh",
