@@ -56,6 +56,13 @@ def register(body: RegisterRequest, db: DbSession) -> AuthResponse:
     return _to_auth(user, tokens)
 
 
+@router.post("/guest", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+def guest(db: DbSession) -> AuthResponse:
+    """Issue a throwaway guest session so visitors can try the app without signing up."""
+    user, tokens = IdentityService(db).register_guest()
+    return _to_auth(user, tokens)
+
+
 @router.post("/login", response_model=AuthResponse)
 def login(body: LoginRequest, db: DbSession) -> AuthResponse:
     try:

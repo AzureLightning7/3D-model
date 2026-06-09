@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import os
 from dataclasses import dataclass
 from typing import Literal
@@ -47,6 +51,8 @@ class Settings:
     deepseek_api_key: str
     anthropic_api_key: str
     openai_api_key: str
+    minimax_api_key: str
+    minimax_base_url: str
 
 
 _INSECURE_JWT_DEFAULT = "dev-insecure-change-me"
@@ -92,7 +98,13 @@ def load_settings() -> Settings:
         deepseek_api_key=_env("DEEPSEEK_API_KEY"),
         anthropic_api_key=_env("ANTHROPIC_API_KEY"),
         openai_api_key=_env("OPENAI_API_KEY"),
+        minimax_api_key=_env("MINIMAX_API_KEY"),
+        minimax_base_url=_env("MINIMAX_BASE_URL", "https://api.minimaxi.com/v1"),
     )
 
 
 settings = load_settings()
+
+
+def get_settings() -> Settings:
+    return settings

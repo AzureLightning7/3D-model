@@ -51,6 +51,8 @@ COPY --chown=app:app pyproject.toml ./
 EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=5 \
-    CMD python -c "import urllib.request,sys;sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2).status==200 else sys.exit(1)"
+    CMD python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/v1/health', timeout=2).status==200 else 1)"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Bind to $PORT when the platform provides one (Render/Heroku), else 8000 for
+# local runs and docker-compose. `exec` so uvicorn gets signals directly (clean shutdown).
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

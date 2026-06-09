@@ -40,6 +40,7 @@ export function LoginPage() {
       noAccount: lang === "zh" ? "还没有账号？" : "Don't have an account?",
       register: lang === "zh" ? "立即注册 / Register" : "Register",
       comingSoon: lang === "zh" ? "敬请期待" : "Coming Soon",
+      tryGuest: lang === "zh" ? "免注册直接体验" : "Try it — no sign-up needed",
     }),
     [lang],
   );
@@ -50,6 +51,21 @@ export function LoginPage() {
     setBusy(true);
     try {
       const r = await api.auth.login(email, password);
+      setSession(r.user, r.tokens);
+      const from = (location.state as { from?: string })?.from ?? "/dashboard";
+      nav(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onGuest() {
+    setError(null);
+    setBusy(true);
+    try {
+      const r = await api.auth.guest();
       setSession(r.user, r.tokens);
       const from = (location.state as { from?: string })?.from ?? "/dashboard";
       nav(from, { replace: true });
@@ -211,6 +227,21 @@ export function LoginPage() {
                   {busy ? "…" : t.submit}
                 </button>
               </form>
+
+              <button
+                type="button"
+                className="dvSubmit"
+                onClick={onGuest}
+                disabled={busy}
+                style={{
+                  marginTop: 10,
+                  background: "transparent",
+                  color: "var(--c-accent)",
+                  border: "1px solid var(--c-accent)",
+                }}
+              >
+                {busy ? "…" : t.tryGuest}
+              </button>
 
               <div className="dvBottom">
                 {t.noAccount}{" "}

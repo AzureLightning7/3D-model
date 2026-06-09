@@ -132,7 +132,7 @@ You need **two terminals**, both run from the repo root.
 ```bash
 pnpm dev:api
 ```
-Logs end with `Uvicorn running on http://0.0.0.0:8000`. Useful URLs:
+The API script auto-detects `apps/api/.venv` and uses it — no manual `activate` step needed (it falls back to `python` on your PATH only if the venv doesn't exist yet). Logs end with `Uvicorn running on http://0.0.0.0:8000`. Useful URLs:
 
 | URL | Purpose |
 |---|---|
@@ -208,7 +208,7 @@ pnpm -F web build
 
 | Symptom | Fix |
 |---|---|
-| `pnpm dev:api` says `python: command not found` | Activate the venv directly: `cd apps/api && .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000` |
+| `pnpm dev:api` fails with `No module named uvicorn` or `python: command not found` | The API deps aren't where the launcher looks. Create the venv per [First-time setup](#first-time-setup); the `dev` script auto-detects `apps/api/.venv` (it only falls back to PATH `python` when no venv exists). |
 | Web shows `error: Failed to fetch` on `/health` | API isn't running, or CORS origin in `apps/api/app/main.py` doesn't include your Vite port |
 | 401 everywhere even after login | Stale token in `localStorage`. DevTools → Application → Local Storage → delete the `dormvibe.auth` key, refresh |
 | 409 `SCENE_VERSION_CONFLICT` | The scene was edited in another tab. Refresh the editor |
