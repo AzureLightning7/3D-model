@@ -14,7 +14,7 @@
 
 Two public URLs (names are ours to choose — the rest of this doc assumes these):
 
-- API → `https://dormvibe-api.onrender.com`
+- API → `https://dorm-vibe.onrender.com`
 - Web → `https://dormvibe-web.onrender.com`
 
 **Why this shape:** the API is a long-running server with a local SQLite file, so it
@@ -68,7 +68,7 @@ Render Dashboard → **New → Web Service** → connect this repo.
 
 | Setting | Value |
 |---|---|
-| Name | `dormvibe-api` |
+| Name | `dorm-vibe` |
 | Language / Runtime | **Docker** |
 | Branch | `main` (or our chosen deploy branch) |
 | Root Directory | `apps/api` |
@@ -80,8 +80,8 @@ Render Dashboard → **New → Web Service** → connect this repo.
 > (falling back to `8000` locally). A port mismatch is the #1 cause of a service that
 > builds but then returns `x-render-routing: no-server`, so it's wired into the image.
 
-> **Service name matters:** the web build bakes in `https://dormvibe-api.onrender.com/api/v1`.
-> Name this service exactly **`dormvibe-api`** so the URL matches — otherwise you must
+> **Service name matters:** the web build bakes in `https://dorm-vibe.onrender.com/api/v1`.
+> Name this service exactly **`dorm-vibe`** so the URL matches — otherwise you must
 > rebuild the web with the new `VITE_API_BASE_URL`.
 
 **Persistent disk (paid plans only):** on **Starter**+, Advanced → Disks → Add Disk →
@@ -96,8 +96,8 @@ is itself a common cause of `no-server`.
 
 Click **Create**. Wait for **Live**, then verify:
 
-- `https://dormvibe-api.onrender.com/api/v1/health` → `{"status":"ok",...}`
-- `https://dormvibe-api.onrender.com/docs` → Swagger UI loads
+- `https://dorm-vibe.onrender.com/api/v1/health` → `{"status":"ok",...}`
+- `https://dorm-vibe.onrender.com/docs` → Swagger UI loads
 
 ---
 
@@ -118,7 +118,7 @@ Render Dashboard → **New → Static Site** → same repo.
 | Key | Value |
 |---|---|
 | `NODE_VERSION` | `20` |
-| `VITE_API_BASE_URL` | `https://dormvibe-api.onrender.com/api/v1` |
+| `VITE_API_BASE_URL` | `https://dorm-vibe.onrender.com/api/v1` |
 
 > `VITE_API_BASE_URL` is **baked in at build time** — if the API URL changes, the web
 > must be rebuilt (a redeploy).
@@ -137,7 +137,7 @@ Click **Create**, wait for **Live**, open `https://dormvibe-web.onrender.com`.
 
 ## 3. Connect them (CORS)
 
-On **dormvibe-api** → Environment, set:
+On **dorm-vibe** → Environment, set:
 
 ```
 APP_CORS_ORIGINS=https://dormvibe-web.onrender.com
@@ -160,11 +160,11 @@ Save → the API redeploys. The browser app on the web origin can now call the A
 | `JWT_ACCESS_TTL_SECONDS` | `900` | |
 | `JWT_REFRESH_TTL_SECONDS` | `2592000` | |
 | `DATABASE_URL` | `sqlite:////data/dormvibe.db` | SQLite on the persistent disk (4 slashes = absolute path) |
-| `APP_BASE_URL` | `https://dormvibe-api.onrender.com` | |
+| `APP_BASE_URL` | `https://dorm-vibe.onrender.com` | |
 | `APP_CORS_ORIGINS` | `https://dormvibe-web.onrender.com` | Set in step 3 |
 | `PORT` | `8000` | Only if you did **not** override the Docker command with `$PORT` |
 | `STORAGE_DIR` | `/data/storage` | *Set for forward-compat; not read by the app yet* |
-| `STORAGE_PUBLIC_BASE_URL` | `https://dormvibe-api.onrender.com/generated` | *Not read by the app yet* |
+| `STORAGE_PUBLIC_BASE_URL` | `https://dorm-vibe.onrender.com/generated` | *Not read by the app yet* |
 | `MINIMAX_API_KEY` etc. | *(blank)* | Leave AI keys blank → app uses the deterministic **fake** provider. `/transform-room` returns 503 without `MINIMAX_API_KEY` (expected) |
 
 Generate a strong `JWT_SECRET`:
@@ -180,7 +180,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 | Key | Value |
 |---|---|
 | `NODE_VERSION` | `20` |
-| `VITE_API_BASE_URL` | `https://dormvibe-api.onrender.com/api/v1` |
+| `VITE_API_BASE_URL` | `https://dorm-vibe.onrender.com/api/v1` |
 
 ---
 
@@ -268,7 +268,7 @@ Review names / `plan` / `region` before applying; secrets are auto-generated.
 ```yaml
 services:
   - type: web
-    name: dormvibe-api
+    name: dorm-vibe
     runtime: docker
     rootDir: apps/api
     dockerfilePath: ./Dockerfile
@@ -298,9 +298,9 @@ services:
       - key: JWT_REFRESH_TTL_SECONDS
         value: "2592000"
       - key: APP_BASE_URL
-        value: https://dormvibe-api.onrender.com
+        value: https://dorm-vibe.onrender.com
       - key: STORAGE_PUBLIC_BASE_URL
-        value: https://dormvibe-api.onrender.com/generated
+        value: https://dorm-vibe.onrender.com/generated
       - key: APP_CORS_ORIGINS
         value: https://dormvibe-web.onrender.com
 
@@ -315,7 +315,7 @@ services:
       - key: NODE_VERSION
         value: "20"
       - key: VITE_API_BASE_URL
-        value: https://dormvibe-api.onrender.com/api/v1
+        value: https://dorm-vibe.onrender.com/api/v1
     routes:
       - type: rewrite
         source: /*
